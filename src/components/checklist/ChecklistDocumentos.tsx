@@ -3,7 +3,7 @@
  * Checkbox persistente, upload de arquivos (PDF/imagens) para o Storage do
  * PocketBase/Skip Cloud e barra de progresso 'X de Y itens entregues'.
  */
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CheckSquare,
   Square,
@@ -19,6 +19,8 @@ import { useToast } from '@/hooks/use-toast'
 import type { AtendimentoRecord } from '@/types/atendimento'
 import {
   gerarChecklist,
+  listarAnexos,
+  marcadosDo,
   salvarMarcados,
   enviarAnexo,
   removerAnexo,
@@ -43,6 +45,22 @@ export const ChecklistDocumentos: React.FC<Props> = ({ record, userId }) => {
   const [copiado, setCopiado] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const itemAlvoRef = useRef<string | null>(null)
+
+  // Carrega o estado persistido (marcados + anexos) ao montar / trocar de atendimento.
+  useEffect(() => {
+    let active = true
+    setMarcados(marcadosDo(record))
+    listarAnexos(record.id)
+      .then((lista) => {
+        if (active) setAnexos(lista)
+      })
+      .catch(() => {
+        /* checklist segue funcional sem os anexos pré-carregados */
+      })
+    return () => {
+      active = false
+    }
+  }, [record.id])
 
   const checklist: ChecklistData = useMemo(
     () => gerarChecklist({ ...record, checklist_marcados: { entregues: marcados } }, anexos),
