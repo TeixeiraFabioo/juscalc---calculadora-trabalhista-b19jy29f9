@@ -31,6 +31,10 @@ export interface AtendimentoForm {
   ja_sacou_fgts: boolean
   ja_recebeu_seguro_desemprego: boolean
 
+  // Rescisão Indireta — faltas graves da empresa (BLOCO 5)
+  faltas_graves: string[] // select múltiplo (opções definidas na migração)
+  data_ultimo_fato_grave: string // YYYY-MM-DD
+
   // Etapa 2 — Remuneração e Jornada
   ultimo_salario: string
   recebia_por_fora: Select
@@ -78,6 +82,8 @@ export interface AtendimentoRecord {
   pago_prazo_10_dias?: Select
   ja_sacou_fgts?: boolean
   ja_recebeu_seguro_desemprego?: boolean
+  faltas_graves?: string[]
+  data_ultimo_fato_grave?: string
   ultimo_salario?: number
   recebia_por_fora?: Select
   valor_por_fora?: number

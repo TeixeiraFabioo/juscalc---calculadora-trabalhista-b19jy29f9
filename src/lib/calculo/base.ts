@@ -32,6 +32,8 @@ export interface ResultadoCalculo {
   memoria: string[]
   total_bruto: number
   aviso_seguro_desemprego?: string
+  /** Verbas que uma demissão sem justa causa gera (o Rescisão Indireta espelha exatamente). */
+  verbas_demissao_sem_justa_causa?: string[]
   parametros: {
     base_salarial: number
     valor_hora: number

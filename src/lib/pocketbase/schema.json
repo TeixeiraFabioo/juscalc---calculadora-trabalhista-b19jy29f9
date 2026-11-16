@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T22:44:21.026Z",
+  "generatedAt": "2026-11-16T23:00:33.711Z",
   "collections": [
     {
       "name": "users",
@@ -313,6 +313,27 @@
         {
           "name": "resultado",
           "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "faltas_graves",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "Atraso frequente de salários",
+            "Falta de depósito do FGTS",
+            "Horas extras não pagas",
+            "Assédio moral / Humilhações",
+            "Desvio ou acúmulo de função",
+            "Falta de EPI / Risco grave",
+            "Outro"
+          ]
+        },
+        {
+          "name": "data_ultimo_fato_grave",
+          "type": "date",
           "required": false,
           "system": false
         }

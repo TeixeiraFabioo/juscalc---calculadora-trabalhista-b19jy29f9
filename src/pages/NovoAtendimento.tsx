@@ -41,6 +41,8 @@ const emptyForm: AtendimentoForm = {
   pago_prazo_10_dias: '',
   ja_sacou_fgts: false,
   ja_recebeu_seguro_desemprego: false,
+  faltas_graves: [],
+  data_ultimo_fato_grave: '',
   ultimo_salario: '',
   recebia_por_fora: '',
   valor_por_fora: '',
@@ -81,6 +83,14 @@ function validateStep(form: AtendimentoForm, step: number): Record<string, strin
     req('data_admissao', form.data_admissao !== '')
     req('data_saida', form.data_saida !== '')
     req('motivo_saida', form.motivo_saida !== '')
+    if (form.motivo_saida.startsWith('Rescisão Indireta')) {
+      req('data_ultimo_fato_grave', form.data_ultimo_fato_grave !== '')
+      req(
+        'faltas_graves',
+        form.faltas_graves.length > 0,
+        'Marque pelo menos uma falta grave da empresa',
+      )
+    }
     req('verbas_recebidas', form.verbas_recebidas !== '')
     if (form.verbas_recebidas === 'recebeu_parcial' || form.verbas_recebidas === 'recebeu_tudo') {
       req('pago_prazo_10_dias', form.pago_prazo_10_dias !== '')

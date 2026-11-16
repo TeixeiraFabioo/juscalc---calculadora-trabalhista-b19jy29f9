@@ -61,10 +61,26 @@ export const Resultado: React.FC = () => {
 
   const r: ResultadoCalculo | null | undefined = record?.resultado
 
+  // BLOCO 5 — Rescisão Indireta: identificação, card explicativo e alerta de "ainda trabalhando".
+  const rescisaoIndireta = !!record?.motivo_saida?.startsWith('Rescisão Indireta')
+  const aindaTrabalhando =
+    record?.motivo_saida === 'Rescisão Indireta - Ainda trabalhando' ||
+    record?.motivo_saida === 'Ainda trabalhando'
+
   const grupoFgts = r?.grupos.find((g) => g.nome === 'FGTS + Multa de 40%')
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full space-y-6">
+      {/* Tag de identificação — Rescisão Indireta */}
+      {rescisaoIndireta && (
+        <div className="flex justify-start">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-extrabold uppercase tracking-wider shadow-sm">
+            <AlertCircle className="w-3.5 h-3.5" />
+            Rescisão Indireta
+          </span>
+        </div>
+      )}
+
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-200">
         <div>
@@ -122,6 +138,32 @@ export const Resultado: React.FC = () => {
 
       {!loading && r && record && (
         <>
+          {/* BLOCO 5 — Card explicativo dourado + alerta vermelho "ainda trabalhando" */}
+          {rescisaoIndireta && (
+            <div className="space-y-3">
+              <div className="rounded-2xl border-2 border-[#C9A24B] bg-[#C9A24B]/10 p-5 shadow-sm">
+                <h2 className="text-sm sm:text-base font-extrabold text-[#0F2A44] flex items-center gap-2">
+                  <Scale className="w-5 h-5 text-[#C9A24B]" />
+                  O que é Rescisão Indireta?
+                </h2>
+                <p className="mt-1.5 text-sm sm:text-base text-[#0F2A44] leading-relaxed">
+                  É quando a empresa descumpre graves obrigações do contrato. Na Justiça, você tem o
+                  direito de sair recebendo todos os direitos como se tivesse sido demitido sem
+                  justa causa.
+                </p>
+              </div>
+              {aindaTrabalhando && (
+                <div className="rounded-xl border border-red-300 bg-red-50 p-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm font-bold text-red-700 leading-relaxed">
+                    IMPORTANTE: Não peça demissão e não pare de trabalhar antes da orientação final
+                    do advogado para não perder seus direitos.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* KPIs principais */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card className="bg-[#0F2A44] text-white border-none shadow-lg rounded-2xl">

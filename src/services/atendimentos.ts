@@ -31,6 +31,8 @@ export function recordToForm(record: AtendimentoRecord): AtendimentoForm {
     pago_prazo_10_dias: record.pago_prazo_10_dias ?? '',
     ja_sacou_fgts: !!record.ja_sacou_fgts,
     ja_recebeu_seguro_desemprego: !!record.ja_recebeu_seguro_desemprego,
+    faltas_graves: Array.isArray(record.faltas_graves) ? record.faltas_graves : [],
+    data_ultimo_fato_grave: toDateInput(record.data_ultimo_fato_grave),
     ultimo_salario: numToInput(record.ultimo_salario),
     recebia_por_fora: record.recebia_por_fora ?? '',
     valor_por_fora: numToInput(record.valor_por_fora),
@@ -77,6 +79,8 @@ export function formToPayload(form: AtendimentoForm, userId: string): Partial<At
   payload.pago_prazo_10_dias = form.pago_prazo_10_dias
   payload.ja_sacou_fgts = form.ja_sacou_fgts
   payload.ja_recebeu_seguro_desemprego = form.ja_recebeu_seguro_desemprego
+  payload.faltas_graves = Array.isArray(form.faltas_graves) ? form.faltas_graves : []
+  payload.data_ultimo_fato_grave = date(form.data_ultimo_fato_grave)
 
   payload.ultimo_salario = num(form.ultimo_salario)
   payload.recebia_por_fora = form.recebia_por_fora
@@ -146,6 +150,18 @@ export async function saveResultado(
   resultado: ResultadoCalculo,
 ): Promise<AtendimentoRecord> {
   return pb.collection(COLLECTION).update<AtendimentoRecord>(recordId, { resultado })
+}
+
+/** Lista todos os atendimentos do usuário logado (tela de Atendimentos). */
+export async function getAtendimentosDoUsuario(userId: string): Promise<AtendimentoRecord[]> {
+  try {
+    return await pb.collection(COLLECTION).getFullList<AtendimentoRecord>({
+      filter: `user = "${userId}"`,
+      sort: '-created',
+    })
+  } catch {
+    return []
+  }
 }
 
 /** Busca um atendimento por id (usado pela tela de Resultado). */

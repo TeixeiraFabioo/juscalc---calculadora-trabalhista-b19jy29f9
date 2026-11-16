@@ -18,6 +18,17 @@ export const MotivosSaida = [
   'Rescisão Indireta - Já saiu',
 ] as const
 
+/** Opções exatas de falta grave da empresa (BLOCO 5 — Rescisão Indireta). */
+export const FaltasGraves = [
+  'Atraso frequente de salários',
+  'Falta de depósito do FGTS',
+  'Horas extras não pagas',
+  'Assédio moral / Humilhações',
+  'Desvio ou acúmulo de função',
+  'Falta de EPI / Risco grave',
+  'Outro',
+] as const
+
 export const Step1Contrato: React.FC<StepProps> = ({ form, set, errors }) => {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6 space-y-5">
@@ -88,6 +99,7 @@ export const Step1Contrato: React.FC<StepProps> = ({ form, set, errors }) => {
 
       <Field label="Motivo da saída" required error={errors.motivo_saida}>
         <SelectInput
+          data-testid="motivo-saida"
           value={form.motivo_saida}
           onChange={(e) => set('motivo_saida', e.target.value)}
           error={errors.motivo_saida}
@@ -100,6 +112,49 @@ export const Step1Contrato: React.FC<StepProps> = ({ form, set, errors }) => {
           ))}
         </SelectInput>
       </Field>
+
+      {(form.motivo_saida === 'Rescisão Indireta - Ainda trabalhando' ||
+        form.motivo_saida === 'Rescisão Indireta - Já saiu') && (
+        <div className="rounded-xl border-2 border-[#C9A24B] bg-[#C9A24B]/5 p-4 sm:p-5 space-y-4 shadow-sm">
+          <div>
+            <p className="text-sm font-bold text-[#0F2A44] flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-[#C9A24B]" />
+              Faltas graves da empresa (Rescisão Indireta)
+            </p>
+            <p className="text-[11px] text-[#5A6E82] mt-0.5">
+              Marque todos os descumprimentos cometidos pela empresa — eles fundamentam a rescisão
+              indireta (Art. 483 da CLT).
+            </p>
+          </div>
+
+          <div className="space-y-1.5" data-testid="faltas-graves">
+            {FaltasGraves.map((falta) => (
+              <Checkbox
+                key={falta}
+                label={falta}
+                checked={form.faltas_graves.includes(falta)}
+                onChange={(checked) =>
+                  set(
+                    'faltas_graves',
+                    checked
+                      ? [...form.faltas_graves, falta]
+                      : form.faltas_graves.filter((f) => f !== falta),
+                  )
+                }
+              />
+            ))}
+          </div>
+
+          <Field label="Data aproximada do último fato grave" error={errors.data_ultimo_fato_grave}>
+            <TextInput
+              type="date"
+              value={form.data_ultimo_fato_grave}
+              onChange={(e) => set('data_ultimo_fato_grave', e.target.value)}
+              error={errors.data_ultimo_fato_grave}
+            />
+          </Field>
+        </div>
+      )}
 
       <div className="space-y-3">
         <Field label="Recebeu as verbas rescisórias?" required error={errors.verbas_recebidas}>

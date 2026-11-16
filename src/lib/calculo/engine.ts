@@ -45,8 +45,28 @@ export function calcularTrabalhista(
   }
 
   const motivo = form.motivo_saida
-  const aindaTrabalhando = motivo.includes('Ainda trabalhando')
-  const dataSaidaBase = form.data_saida || new Date().toISOString().slice(0, 10)
+  const rescisaoIndireta = motivo.startsWith('Rescisão Indireta')
+  const rescIndiretaAindaTrabalhando = motivo === 'Rescisão Indireta - Ainda trabalhando'
+  const rescIndiretaJaSaiu = motivo === 'Rescisão Indireta - Já saiu'
+  const aindaTrabalhando = motivo === 'Ainda trabalhando' || rescIndiretaAindaTrabalhando
+  // Rescisão Indireta "Ainda trabalhando": contrato vigente — projeta o término na data atual.
+  const dataSaidaBase =
+    form.data_saida ||
+    (rescIndiretaAindaTrabalhando ? new Date().toISOString().slice(0, 10) : '') ||
+    new Date().toISOString().slice(0, 10)
+  // Verbas que uma DEMISSÃO SEM JUSTA CAUSA gera (o Rescisão Indireta deve espelhar exatamente):
+  const verbasDemissaoSemJustaCausa = [
+    'Aviso Prévio Indenizado',
+    'Saldo de Salário',
+    '13º Salário Proporcional',
+    'Férias Vencidas + 1/3 Constitucional',
+    'Férias Proporcionais + 1/3 Constitucional',
+    'FGTS sobre Verbas Salariais',
+    `Multa Rescisória de ${(cfg.multa_fgts * 100).toFixed(0)}% do FGTS`,
+    'Multa do Art. 477 da CLT',
+    'Multa do Art. 467 da CLT',
+    'Seguro-Desemprego (estimativa)',
+  ]
   const dataAdmissao = form.data_admissao || dataSaidaBase
 
   // ===== REGRAS 1 e 2 — prescrição quinquenal e base salarial =====
@@ -365,7 +385,9 @@ export function calcularTrabalhista(
     push('Multa do Art. 477 da CLT', 'Art. 477, §8º da CLT', `1× ${fmt(baseSalarial)}`, multa477)
   }
 
-  if (form.incluir_multa_467 && saldoSalario > 0) {
+  // Multa do Art. 467: SEMPRE aplicada quando "Rescisão Indireta - Já saiu" (verbas em atraso
+  // após a saída), ou quando o advogado marcar a opção em qualquer outro motivo.
+  if ((form.incluir_multa_467 || rescIndiretaJaSaiu) && saldoSalario > 0) {
     const base467 = r2(saldoSalario + feriasVencidas + decimoProp)
     const multa467 = r2(base467 * 0.5)
     memoria.push(
@@ -416,6 +438,7 @@ export function calcularTrabalhista(
     memoria,
     total_bruto: totalBruto,
     aviso_seguro_desemprego: avisoSeguro,
+    verbas_demissao_sem_justa_causa: rescisaoIndireta ? verbasDemissaoSemJustaCausa : undefined,
     parametros: {
       base_salarial: baseSalarial,
       valor_hora: r2(valorHora),
