@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T22:14:36.283Z",
+  "generatedAt": "2026-11-16T22:22:54.441Z",
   "collections": [
     {
       "name": "users",
@@ -43,6 +43,275 @@
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
         "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
       ]
+    },
+    {
+      "name": "atendimentos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user = @request.auth.id",
+        "view": "@request.auth.id != '' && user = @request.auth.id",
+        "create": "@request.auth.id != '' && @request.body.user = @request.auth.id",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "step",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cliente_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cliente_cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "empresa_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "empresa_cnpj",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_admissao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_saida",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "motivo_saida",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "Demissão sem justa causa",
+            "Pedido de demissão",
+            "Justa causa",
+            "Acordo (Art. 484-A)",
+            "Ainda trabalhando",
+            "Rescisão Indireta - Ainda trabalhando",
+            "Rescisão Indireta - Já saiu"
+          ]
+        },
+        {
+          "name": "verbas_recebidas",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["nao_recebeu_nada", "recebeu_parcial", "recebeu_tudo"]
+        },
+        {
+          "name": "pago_prazo_10_dias",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["sim", "nao"]
+        },
+        {
+          "name": "ja_sacou_fgts",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ja_recebeu_seguro_desemprego",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ultimo_salario",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recebia_por_fora",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["sim", "nao"]
+        },
+        {
+          "name": "valor_por_fora",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recebia_comissoes",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["sim", "nao"]
+        },
+        {
+          "name": "media_comissoes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hora_entrada",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hora_saida",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "minutos_intervalo",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dias_semana",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "horas_extras_uteis",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "horas_extras_domingo",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "situacao_fgts",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "depositado_corretamente",
+            "nao_depositava_nada",
+            "depositava_alguns_meses"
+          ]
+        },
+        {
+          "name": "tem_adicional_noturno",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "horas_noturnas_semana",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tem_insalubridade",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "grau_insalubridade",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tem_periculosidade",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tem_ferias_vencidas",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "periodos_ferias",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tem_descontos_indevidos",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_descontos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tem_dano_moral",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_dano_moral",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "incluir_multa_467",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_atendimentos_user ON atendimentos (user)"]
     }
   ]
 }
