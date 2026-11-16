@@ -281,3 +281,68 @@
     animation: spotlight 2s ease forwards;
   }
 }
+
+/* ============ Impressão em PDF (BLOCO 6 — Resultado + Checklist) ============ */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Esconde toda a interface do app (sidebar, header, botões, toasts) */
+  aside,
+  header,
+  nav,
+  button:not(.print-keep),
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* A área de conteúdo é o que vai para o papel */
+  main,
+  main > * {
+    display: block !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .bg-\[\#F4F6F9\],
+  .bg-\[\#0F2A44\] {
+    background: #fff !important;
+  }
+
+  .bg-\[\#0F2A44\] * {
+    color: #0f2a44 !important;
+  }
+
+  .rounded-2xl,
+  .rounded-xl,
+  .rounded-lg {
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  table {
+    font-size: 10px;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

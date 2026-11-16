@@ -15,6 +15,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { getAtendimento } from '@/services/atendimentos'
+import { ChecklistDocumentos } from '@/components/checklist/ChecklistDocumentos'
+import { useAuth } from '@/context/AuthContext'
+import { imprimirResultado } from '@/lib/impressao'
 import type { AtendimentoRecord } from '@/types/atendimento'
 import type { ResultadoCalculo } from '@/lib/calculo'
 
@@ -26,6 +29,7 @@ export const Resultado: React.FC = () => {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const id = params.get('id')
+  const { user } = useAuth()
 
   const [record, setRecord] = useState<AtendimentoRecord | null>(null)
   const [loading, setLoading] = useState(true)
@@ -112,9 +116,9 @@ export const Resultado: React.FC = () => {
             <span>Voltar à Entrevista</span>
           </Button>
           <Button
-            disabled
-            className="bg-[#0F2A44] text-white text-xs font-bold flex items-center gap-1.5 opacity-70"
-            title="Exportação disponível na próxima etapa"
+            onClick={imprimirResultado}
+            className="bg-[#0F2A44] hover:bg-[#1A3D61] text-white text-xs font-bold flex items-center gap-1.5"
+            title="Imprimir / salvar em PDF (inclui o Checklist Inteligente)"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Exportar PDF</span>
@@ -330,11 +334,14 @@ export const Resultado: React.FC = () => {
             )}
           </div>
 
+          {/* BLOCO 6 — Checklist Inteligente de Documentos e Provas */}
+          {user && <ChecklistDocumentos record={record} userId={user.id} />}
+
           {/* Footer Nav Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-gray-200">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-gray-200 print:hidden">
             <p className="text-xs text-[#5A6E82]">
               Simulação gerada pelo motor de cálculo do JusCalc e salva no atendimento.
-            </p>
+            </p>{' '}
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"

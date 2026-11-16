@@ -108,6 +108,7 @@ export interface AtendimentoRecord {
   tem_dano_moral?: boolean
   valor_dano_moral?: number
   incluir_multa_467?: boolean
+  checklist_marcados?: { entregues?: string[] } | null
   resultado?: ResultadoCalculo | null
   created?: string
   updated?: string
