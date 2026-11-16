@@ -9,7 +9,16 @@ import { Step1Contrato } from '@/components/entrevista/Step1Contrato'
 import { Step2Remuneracao } from '@/components/entrevista/Step2Remuneracao'
 import { Step3Verbas } from '@/components/entrevista/Step3Verbas'
 import { Step4Revisao } from '@/components/entrevista/Step4Revisao'
-import { loadDraft, saveDraft, recordToForm, formToPayload } from '@/services/atendimentos'
+import {
+  loadDraft,
+  saveDraft,
+  saveResultado,
+  recordToForm,
+  formToPayload,
+} from '@/services/atendimentos'
+import { carregarConfiguracoes } from '@/services/configuracoes'
+import { calcularTrabalhista } from '@/lib/calculo'
+import type { ResultadoCalculo } from '@/lib/calculo'
 import type { AtendimentoForm } from '@/types/atendimento'
 
 const STEP_LABELS: [string, string, string, string] = [
@@ -131,6 +140,7 @@ export const NovoAtendimento: React.FC = () => {
   const [recordId, setRecordId] = useState<string | null>(null)
   const [isLoadingDraft, setIsLoadingDraft] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isCalculando, setIsCalculando] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
   // Carregar rascunho existente ao abrir a tela
@@ -234,6 +244,34 @@ export const NovoAtendimento: React.FC = () => {
     [goToStep],
   )
 
+  /** Calcula a simulação, salva o resultado JSON no atendimento e navega para o Resultado. */
+  const handleCalcular = useCallback(async () => {
+    if (!user || isCalculando) return
+    setIsCalculando(true)
+    setSaveError(null)
+    try {
+      // Persiste o estado final da entrevista antes de calcular
+      const payloadForm = { ...form, step: 4 }
+      const { record } = await saveDraft(payloadForm, user.id, recordId)
+      setRecordId(record.id)
+
+      const cfg = await carregarConfiguracoes()
+      const resultado: ResultadoCalculo = calcularTrabalhista(form, cfg)
+      await saveResultado(record.id, resultado)
+      toast({
+        title: 'Simulação calculada',
+        description: `Total bruto da ação: ${resultado.total_bruto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.`,
+      })
+      navigate(`/resultado?id=${record.id}`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Falha ao calcular a simulação.'
+      setSaveError(msg)
+      toast({ title: 'Erro ao calcular', description: msg, variant: 'destructive' })
+    } finally {
+      setIsCalculando(false)
+    }
+  }, [user, form, recordId, isCalculando, navigate])
+
   const stepProps = { form, set, errors }
 
   return (
@@ -292,7 +330,14 @@ export const NovoAtendimento: React.FC = () => {
           {step === 1 && <Step1Contrato {...stepProps} />}
           {step === 2 && <Step2Remuneracao {...stepProps} />}
           {step === 3 && <Step3Verbas {...stepProps} />}
-          {step === 4 && <Step4Revisao form={form} onEdit={handleEditSection} />}
+          {step === 4 && (
+            <Step4Revisao
+              form={form}
+              onEdit={handleEditSection}
+              onCalcular={handleCalcular}
+              isCalculando={isCalculando}
+            />
+          )}
 
           {/* Navegação Voltar / Próximo */}
           {step < 4 && (

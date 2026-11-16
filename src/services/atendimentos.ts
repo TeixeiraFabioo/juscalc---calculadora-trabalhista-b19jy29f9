@@ -1,4 +1,5 @@
 import pb from '@/lib/pocketbase/client'
+import type { ResultadoCalculo } from '@/lib/calculo'
 import type { AtendimentoForm, AtendimentoRecord } from '@/types/atendimento'
 
 const COLLECTION = 'atendimentos'
@@ -137,6 +138,23 @@ export async function saveDraft(
   }
   const record = await createDraft(form, userId)
   return { record, created: true }
+}
+
+/** Salva o resultado JSON completo do cálculo no registro do atendimento. */
+export async function saveResultado(
+  recordId: string,
+  resultado: ResultadoCalculo,
+): Promise<AtendimentoRecord> {
+  return pb.collection(COLLECTION).update<AtendimentoRecord>(recordId, { resultado })
+}
+
+/** Busca um atendimento por id (usado pela tela de Resultado). */
+export async function getAtendimento(id: string): Promise<AtendimentoRecord | null> {
+  try {
+    return await pb.collection(COLLECTION).getOne<AtendimentoRecord>(id)
+  } catch {
+    return null
+  }
 }
 
 function safeStep(step: unknown): number {

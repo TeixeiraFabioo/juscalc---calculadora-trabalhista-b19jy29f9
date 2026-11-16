@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T22:22:54.441Z",
+  "generatedAt": "2026-11-16T22:44:21.026Z",
   "collections": [
     {
       "name": "users",
@@ -309,9 +309,88 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "resultado",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_atendimentos_user ON atendimentos (user)"]
+    },
+    {
+      "name": "configuracoes_escritorio",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user = @request.auth.id",
+        "view": "@request.auth.id != '' && user = @request.auth.id",
+        "create": "@request.auth.id != '' && @request.body.user = @request.auth.id",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "salario_minimo",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "divisor_padrao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "percentual_dsr",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "percentual_fgts",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "multa_fgts",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "teto_seguro_desemprego",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_config_escritorio_user ON configuracoes_escritorio (user)"
+      ]
     }
   ]
 }

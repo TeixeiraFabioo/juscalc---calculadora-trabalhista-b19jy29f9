@@ -3,6 +3,8 @@
  * Nenhuma lógica de cálculo — apenas estrutura de dados.
  */
 
+import type { ResultadoCalculo } from '@/lib/calculo'
+
 /** Valores possíveis dos campos select/radio. */
 export type Select =
   | 'nao_recebeu_nada'
@@ -100,6 +102,7 @@ export interface AtendimentoRecord {
   tem_dano_moral?: boolean
   valor_dano_moral?: number
   incluir_multa_467?: boolean
+  resultado?: ResultadoCalculo | null
   created?: string
   updated?: string
   expand?: Record<string, unknown>

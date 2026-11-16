@@ -1,10 +1,12 @@
 import React from 'react'
-import { Pencil, Calculator, Lock } from 'lucide-react'
+import { Pencil, Calculator, Lock, Loader2 } from 'lucide-react'
 import type { AtendimentoForm } from '@/types/atendimento'
 
 interface Step4Props {
   form: AtendimentoForm
   onEdit: (step: number) => void
+  onCalcular: () => void
+  isCalculando?: boolean
 }
 
 interface SectionProps {
@@ -60,7 +62,7 @@ const verbasLabels: Record<string, string> = {
 
 const simNaoLabels: Record<string, string> = { sim: 'Sim', nao: 'Não' }
 
-export const Step4Revisao: React.FC<Step4Props> = ({ form, onEdit }) => {
+export const Step4Revisao: React.FC<Step4Props> = ({ form, onEdit, onCalcular, isCalculando }) => {
   const insalubreGrau = form.grau_insalubridade ? `${form.grau_insalubridade}%` : ''
 
   return (
@@ -179,20 +181,26 @@ export const Step4Revisao: React.FC<Step4Props> = ({ form, onEdit }) => {
         />
       </Section>
 
-      {/* CTA — sem cálculo nesta entrega */}
+      {/* CTA — motor de cálculo */}
       <div className="bg-white rounded-2xl border border-[#C9A24B]/50 shadow-sm p-5 sm:p-6 space-y-3">
         <button
           type="button"
-          className="w-full bg-[#C9A24B] hover:bg-[#B38E3D] text-[#0F2A44] font-extrabold text-sm py-3 px-5 rounded-lg shadow-md flex items-center justify-center gap-2"
+          onClick={onCalcular}
+          disabled={isCalculando}
+          className="w-full bg-[#C9A24B] hover:bg-[#B38E3D] text-[#0F2A44] font-extrabold text-sm py-3 px-5 rounded-lg shadow-md flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <Calculator className="w-4 h-4" />
-          Calcular Simulação
+          {isCalculando ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Calculator className="w-4 h-4" />
+          )}
+          {isCalculando ? 'Calculando simulação…' : 'Calcular Simulação'}
         </button>
         <p className="text-[11px] text-[#5A6E82] flex items-start gap-1.5">
           <Lock className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#C9A24B]" />
           <span>
-            A simulação será calculada no próximo passo do JusCalc. Nenhum valor de verbas é exibido
-            nesta etapa.
+            O motor de cálculo aplica as regras CLT (prescrição quinquenal, aviso projetado, FGTS +
+            multa, reflexos) e salva a simulação no atendimento. Nenhum valor é exibido nesta etapa.
           </span>
         </p>
       </div>
