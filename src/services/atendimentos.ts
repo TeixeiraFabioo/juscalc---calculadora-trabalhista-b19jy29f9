@@ -1,6 +1,6 @@
 import pb from '@/lib/pocketbase/client'
 import type { ResultadoCalculo } from '@/lib/calculo'
-import type { AtendimentoForm, AtendimentoRecord } from '@/types/atendimento'
+import type { AtendimentoForm, AtendimentoRecord, Select } from '@/types/atendimento'
 
 const COLLECTION = 'atendimentos'
 
@@ -93,6 +93,11 @@ function textoOuVazio(v: unknown): string {
   return typeof v === 'string' ? v.trim() : ''
 }
 
+/** Sanitiza um select: só aceita valores do tipo Select; caso contrário ''. */
+function selectOuVazio(v: unknown): Select {
+  return typeof v === 'string' ? (v as Select) : ''
+}
+
 /**
  * Converte o estado do formulário + usuário em payload SANITIZADO para o banco.
  * - datas vazias → null (campo date do PocketBase rejeita "");
@@ -113,8 +118,8 @@ export function formToPayload(form: AtendimentoForm, userId: string): Partial<At
   payload.data_admissao = date(form.data_admissao)
   payload.data_saida = date(form.data_saida)
   payload.motivo_saida = textoOuVazio(form.motivo_saida)
-  payload.verbas_recebidas = textoOuVazio(form.verbas_recebidas)
-  payload.pago_prazo_10_dias = textoOuVazio(form.pago_prazo_10_dias)
+  payload.verbas_recebidas = selectOuVazio(form.verbas_recebidas)
+  payload.pago_prazo_10_dias = selectOuVazio(form.pago_prazo_10_dias)
   payload.ja_sacou_fgts = !!form.ja_sacou_fgts
   payload.ja_recebeu_seguro_desemprego = !!form.ja_recebeu_seguro_desemprego
   payload.faltas_graves = Array.isArray(form.faltas_graves)
@@ -123,9 +128,9 @@ export function formToPayload(form: AtendimentoForm, userId: string): Partial<At
   payload.data_ultimo_fato_grave = date(form.data_ultimo_fato_grave)
 
   payload.ultimo_salario = num(form.ultimo_salario) ?? 0
-  payload.recebia_por_fora = textoOuVazio(form.recebia_por_fora)
+  payload.recebia_por_fora = selectOuVazio(form.recebia_por_fora)
   payload.valor_por_fora = num(form.valor_por_fora)
-  payload.recebia_comissoes = textoOuVazio(form.recebia_comissoes)
+  payload.recebia_comissoes = selectOuVazio(form.recebia_comissoes)
   payload.media_comissoes = num(form.media_comissoes)
   payload.hora_entrada = text(form.hora_entrada)
   payload.hora_saida = text(form.hora_saida)
@@ -134,7 +139,7 @@ export function formToPayload(form: AtendimentoForm, userId: string): Partial<At
   payload.horas_extras_uteis = num(form.horas_extras_uteis)
   payload.horas_extras_domingo = num(form.horas_extras_domingo)
 
-  payload.situacao_fgts = textoOuVazio(form.situacao_fgts)
+  payload.situacao_fgts = selectOuVazio(form.situacao_fgts)
   payload.tem_adicional_noturno = !!form.tem_adicional_noturno
   payload.horas_noturnas_semana = num(form.horas_noturnas_semana)
   payload.tem_insalubridade = !!form.tem_insalubridade
