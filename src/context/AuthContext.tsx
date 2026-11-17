@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
   requestPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>
+  primeiroAcessoAdmin: (senha: string) => Promise<{ success: boolean; error?: string }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -56,6 +57,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null)
   }
 
+  /**
+   * Primeiro acesso do administrador: cria (ou atualiza) a conta
+   * fabio.saantost@gmail.com com role = 'admin' — somente esse e-mail é aceito,
+   * bloqueando o cadastro público de qualquer outro endereço.
+   */
+  const primeiroAcessoAdmin = async (senha: string) => {
+    try {
+      await pb.send('/backend/v1/primeiro-acesso', {
+        method: 'POST',
+        body: JSON.stringify({ email: 'fabio.saantost@gmail.com', senha }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+      return { success: true as const }
+    } catch (err: unknown) {
+      const e = err as { status?: number; response?: { message?: string }; message?: string }
+      return {
+        success: false as const,
+        error: e?.response?.message || e?.message || 'Falha ao criar a conta de administrador.',
+      }
+    }
+  }
+
   const requestPasswordReset = async (email: string) => {
     try {
       await pb.collection('users').requestPasswordReset(email.trim())
@@ -79,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         requestPasswordReset,
+        primeiroAcessoAdmin,
       }}
     >
       {children}

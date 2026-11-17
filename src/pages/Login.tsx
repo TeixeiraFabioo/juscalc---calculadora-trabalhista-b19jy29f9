@@ -1,10 +1,24 @@
 import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Scale, Lock, Mail, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react'
+import {
+  Scale,
+  Lock,
+  Mail,
+  AlertCircle,
+  CheckCircle2,
+  ArrowRight,
+  ShieldCheck,
+  X,
+} from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+
+/** Único e-mail autorizado a criar a conta de administrador. */
+export const ADMIN_EMAIL = 'fabio.saantost@gmail.com'
+
+type FirstAccessState = 'idle' | 'loading' | 'success' | 'error'
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -18,7 +32,14 @@ export const Login: React.FC = () => {
   const [resetStatus, setResetStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [resetMessage, setResetMessage] = useState<string | null>(null)
 
-  const { login, requestPasswordReset, isAuthenticated } = useAuth()
+  // Primeiro acesso do administrador (modal)
+  const [isFirstAccessOpen, setIsFirstAccessOpen] = useState(false)
+  const [faSenha, setFaSenha] = useState('')
+  const [faConfirm, setFaConfirm] = useState('')
+  const [faState, setFaState] = useState<FirstAccessState>('idle')
+  const [faMessage, setFaMessage] = useState<string | null>(null)
+
+  const { login, requestPasswordReset, primeiroAcessoAdmin, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -40,7 +61,7 @@ export const Login: React.FC = () => {
     }
 
     setIsSubmitting(true)
-    const result = await login(email, password)
+    const result = await login(email.trim(), password)
     setIsSubmitting(false)
 
     if (result.success) {
@@ -51,12 +72,6 @@ export const Login: React.FC = () => {
         result.error || 'Credenciais inválidas. Verifique os dados digitados e tente novamente.',
       )
     }
-  }
-
-  const handleFillDemo = () => {
-    setEmail('advogado@juscalc.com.br')
-    setPassword('Skip@Pass123')
-    setErrorMessage(null)
   }
 
   const handlePasswordReset = async (e: React.FormEvent) => {
@@ -78,6 +93,42 @@ export const Login: React.FC = () => {
       setResetStatus('error')
       setResetMessage(res.error || 'Não foi possível enviar o e-mail de recuperação.')
     }
+  }
+
+  const handlePrimeiroAcesso = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFaMessage(null)
+
+    if (!faSenha || faSenha.length < 8) {
+      setFaState('error')
+      setFaMessage('A senha deve ter pelo menos 8 caracteres.')
+      return
+    }
+    if (faSenha !== faConfirm) {
+      setFaState('error')
+      setFaMessage('As senhas não conferem.')
+      return
+    }
+
+    setFaState('loading')
+    const res = await primeiroAcessoAdmin(faSenha)
+    if (res.success) {
+      setFaState('success')
+      setFaMessage(
+        'Conta de administrador criada/atualizada com sucesso. Use estes dados para entrar.',
+      )
+    } else {
+      setFaState('error')
+      setFaMessage(res.error || 'Não foi possível concluir o primeiro acesso.')
+    }
+  }
+
+  const resetFirstAccess = () => {
+    setIsFirstAccessOpen(false)
+    setFaSenha('')
+    setFaConfirm('')
+    setFaState('idle')
+    setFaMessage(null)
   }
 
   return (
@@ -128,7 +179,7 @@ export const Login: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="advogado@juscalc.com.br"
+                  placeholder="seu@email.com.br"
                   className="pl-10 h-11 text-base border-gray-300 focus:border-[#C9A24B] focus:ring-[#C9A24B]"
                 />
               </div>
@@ -188,26 +239,20 @@ export const Login: React.FC = () => {
             </div>
           </form>
 
-          {/* Quick Demo Credential Helper */}
-          <div className="mt-6 pt-5 border-t border-gray-200">
-            <div className="bg-[#F4F6F9] rounded-lg p-3 text-xs text-[#0F2A44]">
-              <div className="flex items-center justify-between mb-1.5 font-semibold">
-                <span className="text-[#0F2A44]">Acesso de Demonstração:</span>
-                <button
-                  type="button"
-                  onClick={handleFillDemo}
-                  className="text-[#C9A24B] font-bold hover:underline"
-                >
-                  Preencher dados
-                </button>
-              </div>
-              <p className="text-gray-600">
-                E-mail: <code className="font-mono text-[#0F2A44]">advogado@juscalc.com.br</code>
-              </p>
-              <p className="text-gray-600">
-                Senha: <code className="font-mono text-[#0F2A44]">Skip@Pass123</code>
-              </p>
-            </div>
+          {/* Link discreto — primeiro acesso do administrador */}
+          <div className="mt-6 pt-5 border-t border-gray-200 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsFirstAccessOpen(true)
+                setFaState('idle')
+                setFaMessage(null)
+              }}
+              className="text-xs text-[#5A6E82] hover:text-[#C9A24B] underline underline-offset-2 transition-colors inline-flex items-center gap-1.5"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Primeiro Acesso do Administrador
+            </button>
           </div>
         </div>
 
@@ -252,7 +297,7 @@ export const Login: React.FC = () => {
                     required
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
-                    placeholder="advogado@juscalc.com.br"
+                    placeholder="seu@email.com.br"
                     className="mt-1 h-10 text-sm"
                   />
                 </div>
@@ -283,6 +328,121 @@ export const Login: React.FC = () => {
                   className="bg-[#0F2A44] text-white hover:bg-[#1A3D61]"
                 >
                   Entendi e Voltar
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Primeiro Acesso do Administrador — modal */}
+      {isFirstAccessOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 relative">
+            <button
+              type="button"
+              onClick={resetFirstAccess}
+              className="absolute top-4 right-4 text-gray-400 hover:text-[#0F2A44] transition-colors"
+              aria-label="Fechar"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2.5 mb-1">
+              <ShieldCheck className="w-5 h-5 text-[#C9A24B]" />
+              <h3 className="text-lg font-bold text-[#0F2A44]">Primeiro Acesso do Administrador</h3>
+            </div>
+            <p className="text-xs text-[#5A6E82]">
+              Define a senha inicial do administrador do sistema. Somente o e-mail{' '}
+              <code className="font-mono text-[#0F2A44]">{ADMIN_EMAIL}</code> é aceito — cadastro
+              público está bloqueado.
+            </p>
+
+            {faState === 'success' ? (
+              <div className="my-5 p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 flex items-start gap-2.5">
+                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">Administrador pronto!</p>
+                  <p className="text-xs mt-1 text-green-700">{faMessage}</p>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handlePrimeiroAcesso} className="mt-4 space-y-4">
+                {faState === 'error' && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{faMessage}</span>
+                  </div>
+                )}
+                <div>
+                  <Label htmlFor="fa-email" className="text-xs font-semibold text-[#0F2A44]">
+                    E-mail do administrador
+                  </Label>
+                  <Input
+                    id="fa-email"
+                    type="email"
+                    required
+                    value={ADMIN_EMAIL}
+                    readOnly
+                    disabled
+                    className="mt-1 h-10 text-sm bg-gray-100 text-gray-500"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="fa-senha" className="text-xs font-semibold text-[#0F2A44]">
+                    Nova senha (mín. 8 caracteres)
+                  </Label>
+                  <Input
+                    id="fa-senha"
+                    type="password"
+                    required
+                    value={faSenha}
+                    onChange={(e) => setFaSenha(e.target.value)}
+                    placeholder="••••••••"
+                    className="mt-1 h-10 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="fa-confirm" className="text-xs font-semibold text-[#0F2A44]">
+                    Confirmar senha
+                  </Label>
+                  <Input
+                    id="fa-confirm"
+                    type="password"
+                    required
+                    value={faConfirm}
+                    onChange={(e) => setFaConfirm(e.target.value)}
+                    placeholder="••••••••"
+                    className="mt-1 h-10 text-sm"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetFirstAccess}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={faState === 'loading'}
+                    className="flex-1 bg-[#0F2A44] hover:bg-[#1A3D61] text-white font-semibold"
+                  >
+                    {faState === 'loading' ? 'Salvando...' : 'Definir Senha'}
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {faState === 'success' && (
+              <div className="mt-4 flex justify-end">
+                <Button
+                  onClick={resetFirstAccess}
+                  className="bg-[#0F2A44] text-white hover:bg-[#1A3D61]"
+                >
+                  Ir para o Login
                 </Button>
               </div>
             )}

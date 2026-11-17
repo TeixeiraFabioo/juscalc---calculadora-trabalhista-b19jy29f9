@@ -141,6 +141,38 @@ function validateStep(form: AtendimentoForm, step: number): Record<string, strin
   return errors
 }
 
+/**
+ * Extrai a mensagem técnica EXATA retornada pelo Skip Cloud (PocketBase):
+ * message + status + erros por campo, para exibição em alerta na tela.
+ */
+function erroTecnico(err: unknown, acao: string): string {
+  const parts: string[] = []
+  const e = err as {
+    message?: unknown
+    status?: unknown
+    response?: { message?: unknown; status?: unknown; data?: unknown }
+  }
+  const msg = typeof e?.message === 'string' ? e.message : undefined
+  const respMsg = typeof e?.response?.message === 'string' ? e.response.message : undefined
+  const status =
+    typeof e?.status === 'number'
+      ? e.status
+      : typeof e?.response?.status === 'number'
+        ? e.response.status
+        : undefined
+  const principal = msg ?? respMsg ?? String(err)
+  parts.push(`Não foi possível ${acao}: ${principal}`)
+  if (status !== undefined) parts.push(`(status ${status})`)
+  const data = e?.response?.data as Record<string, { message?: string }> | undefined
+  if (data && typeof data === 'object') {
+    const campos = Object.entries(data)
+      .filter(([, v]) => v && typeof v.message === 'string')
+      .map(([campo, v]) => `${campo}: ${v.message}`)
+    if (campos.length > 0) parts.push(`Campos: ${campos.join('; ')}`)
+  }
+  return parts.join(' ')
+}
+
 export const NovoAtendimento: React.FC = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -202,12 +234,11 @@ export const NovoAtendimento: React.FC = () => {
         setRecordId(record.id)
         return record
       } catch (err) {
-        const msg =
-          err instanceof Error ? err.message : 'Falha ao salvar o rascunho automaticamente.'
-        setSaveError(msg)
+        const detalhe = erroTecnico(err, 'salvar o rascunho')
+        setSaveError(detalhe)
         toast({
           title: 'Erro ao salvar rascunho',
-          description: msg,
+          description: detalhe,
           variant: 'destructive',
         })
       } finally {
@@ -274,7 +305,7 @@ export const NovoAtendimento: React.FC = () => {
       })
       navigate(`/resultado?id=${record.id}`)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Falha ao calcular a simulação.'
+      const msg = erroTecnico(err, 'calcular e salvar a simulação')
       setSaveError(msg)
       toast({ title: 'Erro ao calcular', description: msg, variant: 'destructive' })
     } finally {

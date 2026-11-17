@@ -69,13 +69,42 @@ export function recordToForm(record: AtendimentoRecord): AtendimentoForm {
   }
 }
 
-/** Converte o estado do formulário + usuário em payload para o banco. */
+/**
+ * Normaliza o valor de um campo date do PocketBase: a API não aceita string
+ * vazia em campos date — vira null. Retorna Date ISO ou null.
+ */
+function dateOuNull(v: string): string | null {
+  const s = (v ?? '').trim()
+  if (s === '') return null
+  const d = new Date(s.length === 10 ? `${s}T00:00:00.000Z` : s)
+  return Number.isNaN(d.getTime()) ? null : d.toISOString()
+}
+
+/** Sanitiza um número de formulário: vazio/inválido vira null (campo number opcional). */
+function numOuNull(v: string): number | null {
+  const s = (v ?? '').trim()
+  if (s === '') return null
+  const n = Number(s.replace(',', '.'))
+  return Number.isNaN(n) ? null : n
+}
+
+/** Sanitiza um texto: vazio vira '' (campo text aceita string vazia). */
+function textoOuVazio(v: unknown): string {
+  return typeof v === 'string' ? v.trim() : ''
+}
+
+/**
+ * Converte o estado do formulário + usuário em payload SANITIZADO para o banco.
+ * - datas vazias → null (campo date do PocketBase rejeita "");
+ * - números vazios → null;
+ * - user sempre com o id do usuário autenticado.
+ */
 export function formToPayload(form: AtendimentoForm, userId: string): Partial<AtendimentoRecord> {
   const payload: Partial<AtendimentoRecord> = { user: userId, step: form.step }
 
-  const text = (v: string) => (v.trim() === '' ? '' : v.trim())
-  const num = (v: string) => (v.trim() === '' ? null : Number(v))
-  const date = (v: string) => (v.trim() === '' ? '' : v) // YYYY-MM-DD
+  const text = textoOuVazio
+  const num = numOuNull
+  const date = dateOuNull
 
   payload.cliente_nome = text(form.cliente_nome)
   payload.cliente_cpf = text(form.cliente_cpf)
@@ -83,18 +112,20 @@ export function formToPayload(form: AtendimentoForm, userId: string): Partial<At
   payload.empresa_cnpj = text(form.empresa_cnpj)
   payload.data_admissao = date(form.data_admissao)
   payload.data_saida = date(form.data_saida)
-  payload.motivo_saida = form.motivo_saida
-  payload.verbas_recebidas = form.verbas_recebidas
-  payload.pago_prazo_10_dias = form.pago_prazo_10_dias
-  payload.ja_sacou_fgts = form.ja_sacou_fgts
-  payload.ja_recebeu_seguro_desemprego = form.ja_recebeu_seguro_desemprego
-  payload.faltas_graves = Array.isArray(form.faltas_graves) ? form.faltas_graves : []
+  payload.motivo_saida = textoOuVazio(form.motivo_saida)
+  payload.verbas_recebidas = textoOuVazio(form.verbas_recebidas)
+  payload.pago_prazo_10_dias = textoOuVazio(form.pago_prazo_10_dias)
+  payload.ja_sacou_fgts = !!form.ja_sacou_fgts
+  payload.ja_recebeu_seguro_desemprego = !!form.ja_recebeu_seguro_desemprego
+  payload.faltas_graves = Array.isArray(form.faltas_graves)
+    ? form.faltas_graves.filter((f) => typeof f === 'string' && f !== '')
+    : []
   payload.data_ultimo_fato_grave = date(form.data_ultimo_fato_grave)
 
-  payload.ultimo_salario = num(form.ultimo_salario)
-  payload.recebia_por_fora = form.recebia_por_fora
+  payload.ultimo_salario = num(form.ultimo_salario) ?? 0
+  payload.recebia_por_fora = textoOuVazio(form.recebia_por_fora)
   payload.valor_por_fora = num(form.valor_por_fora)
-  payload.recebia_comissoes = form.recebia_comissoes
+  payload.recebia_comissoes = textoOuVazio(form.recebia_comissoes)
   payload.media_comissoes = num(form.media_comissoes)
   payload.hora_entrada = text(form.hora_entrada)
   payload.hora_saida = text(form.hora_saida)
@@ -103,19 +134,19 @@ export function formToPayload(form: AtendimentoForm, userId: string): Partial<At
   payload.horas_extras_uteis = num(form.horas_extras_uteis)
   payload.horas_extras_domingo = num(form.horas_extras_domingo)
 
-  payload.situacao_fgts = form.situacao_fgts
-  payload.tem_adicional_noturno = form.tem_adicional_noturno
+  payload.situacao_fgts = textoOuVazio(form.situacao_fgts)
+  payload.tem_adicional_noturno = !!form.tem_adicional_noturno
   payload.horas_noturnas_semana = num(form.horas_noturnas_semana)
-  payload.tem_insalubridade = form.tem_insalubridade
+  payload.tem_insalubridade = !!form.tem_insalubridade
   payload.grau_insalubridade = num(form.grau_insalubridade)
-  payload.tem_periculosidade = form.tem_periculosidade
-  payload.tem_ferias_vencidas = form.tem_ferias_vencidas
+  payload.tem_periculosidade = !!form.tem_periculosidade
+  payload.tem_ferias_vencidas = !!form.tem_ferias_vencidas
   payload.periodos_ferias = num(form.periodos_ferias)
-  payload.tem_descontos_indevidos = form.tem_descontos_indevidos
+  payload.tem_descontos_indevidos = !!form.tem_descontos_indevidos
   payload.valor_descontos = num(form.valor_descontos)
-  payload.tem_dano_moral = form.tem_dano_moral
+  payload.tem_dano_moral = !!form.tem_dano_moral
   payload.valor_dano_moral = num(form.valor_dano_moral)
-  payload.incluir_multa_467 = form.incluir_multa_467
+  payload.incluir_multa_467 = !!form.incluir_multa_467
 
   return payload
 }
