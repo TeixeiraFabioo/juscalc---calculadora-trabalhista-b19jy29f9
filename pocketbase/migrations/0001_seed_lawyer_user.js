@@ -12,7 +12,7 @@ migrate(
     record.setEmail('advogado@juscalc.com.br')
     record.setPassword('Skip@Pass123')
     record.setVerified(true)
-    record.set('name', 'Dr. Roberto Silveira')
+    record.set('name', 'Dr. Fábio Teixeira')
     app.save(record)
   },
   (app) => {
