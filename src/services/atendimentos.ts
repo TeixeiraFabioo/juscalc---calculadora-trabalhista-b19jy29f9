@@ -4,6 +4,15 @@ import type { AtendimentoForm, AtendimentoRecord } from '@/types/atendimento'
 
 const COLLECTION = 'atendimentos'
 
+/** Status jurídico do atendimento (select `status` — migração 0007). */
+export type AtendimentoStatus = 'Simulação' | 'Aguardando Documentos' | 'Ajuizado'
+
+export const STATUS_OPTIONS: AtendimentoStatus[] = [
+  'Simulação',
+  'Aguardando Documentos',
+  'Ajuizado',
+]
+
 /**
  * Carrega o rascunho aberto mais recente do usuário logado.
  * Retorna null se não existir nenhum.
@@ -171,6 +180,60 @@ export async function getAtendimento(id: string): Promise<AtendimentoRecord | nu
   } catch {
     return null
   }
+}
+
+/** Salva apenas o status do atendimento (select editável na tela CRM). */
+export async function salvarStatus(
+  recordId: string,
+  status: AtendimentoStatus,
+): Promise<AtendimentoRecord> {
+  return pb.collection(COLLECTION).update<AtendimentoRecord>(recordId, { status })
+}
+
+/** Lê o status salvo de um registro (fallback "Simulação"). */
+export function statusDo(record: AtendimentoRecord): AtendimentoStatus {
+  const s = record.status
+  return STATUS_OPTIONS.find((opt) => opt === s) ?? 'Simulação'
+}
+
+/**
+ * Duplica um atendimento (inclusive checklist_marcados e resultado).
+ * Retorna a nova linha criada.
+ */
+export async function duplicarAtendimento(
+  record: AtendimentoRecord,
+  userId: string,
+): Promise<AtendimentoRecord> {
+  const copia = formToPayload(recordToForm(record), userId)
+  return pb.collection(COLLECTION).create<AtendimentoRecord>({
+    ...copia,
+    resultado: record.resultado,
+    checklist_marcados: record.checklist_marcados,
+    status: statusDo(record),
+  })
+}
+
+/** Exclui um atendimento e os anexos do checklist vinculados a ele. */
+export async function excluirAtendimento(recordId: string): Promise<void> {
+  try {
+    const anexos = await pb.collection('checklist_anexos').getFullList<{ id: string }>({
+      filter: `atendimento = "${recordId}"`,
+      fields: 'id',
+    })
+    for (const anexo of anexos) {
+      await pb.collection('checklist_anexos').delete(anexo.id)
+    }
+  } catch {
+    // Sem anexos (ou falha ao listar): segue com a exclusão do atendimento.
+  }
+  await pb.collection(COLLECTION).delete(recordId)
+}
+
+/** Estimativa de verbas: deduz honorários de 15% quando houver resultado. */
+export function valorLiquidoEstimado(record: AtendimentoRecord): number | null {
+  const r = record.resultado
+  if (!r || typeof r.total_bruto !== 'number') return null
+  return Math.max(0, Math.round(r.total_bruto * 0.85 * 100) / 100)
 }
 
 function safeStep(step: unknown): number {

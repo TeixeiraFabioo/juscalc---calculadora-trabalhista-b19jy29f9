@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T23:17:42.445Z",
+  "generatedAt": "2026-11-17T00:58:25.893Z",
   "collections": [
     {
       "name": "users",
@@ -342,6 +342,13 @@
           "type": "json",
           "required": false,
           "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Simulação", "Aguardando Documentos", "Ajuizado"]
         }
       ],
       "indexes": ["CREATE INDEX idx_atendimentos_user ON atendimentos (user)"]
@@ -413,6 +420,36 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "nome_escritorio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "numero_oab",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "percentual_honorarios",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "texto_rodape",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mensagem_whatsapp",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

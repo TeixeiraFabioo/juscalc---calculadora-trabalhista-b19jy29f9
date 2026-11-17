@@ -1,7 +1,8 @@
-/* Dialog Component primitives - A component that displays a dialog (a modal that appears in the center of the screen) - from shadcn/ui (exposes Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose, DialogOverlay, DialogPortal) */
 import * as React from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
-import { X } from 'lucide-react'
+import { Loader2, X } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
 
 import { cn } from '@/lib/utils'
 
@@ -37,7 +38,7 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg overflow-y-auto max-h-screen',
+        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg',
         className,
       )}
       {...props}
@@ -93,11 +94,61 @@ export {
   Dialog,
   DialogPortal,
   DialogOverlay,
-  DialogClose,
   DialogTrigger,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogFooter,
   DialogTitle,
   DialogDescription,
 }
+
+/** Diálogo de confirmação simples usado nas ações destrutivas do app. */
+export interface ConfirmDialogProps {
+  open: boolean
+  title: string
+  description: string
+  confirmLabel?: string
+  cancelLabel?: string
+  busy?: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
+  open,
+  title,
+  description,
+  confirmLabel = 'Confirmar',
+  cancelLabel = 'Cancelar',
+  busy = false,
+  onConfirm,
+  onCancel,
+}) => (
+  <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
+    <DialogContent className="max-w-md rounded-2xl border-gray-200">
+      <DialogHeader>
+        <DialogTitle className="text-[#0F2A44] text-xl font-extrabold">{title}</DialogTitle>
+        <DialogDescription className="text-sm text-[#5A6E82] pt-1">{description}</DialogDescription>
+      </DialogHeader>
+      <DialogFooter className="gap-2 pt-2">
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={onCancel}
+          className="text-xs font-bold text-[#0F2A44] border-gray-300"
+        >
+          {cancelLabel}
+        </Button>
+        <Button
+          disabled={busy}
+          onClick={onConfirm}
+          className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold"
+        >
+          {busy && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+          {confirmLabel}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+)
