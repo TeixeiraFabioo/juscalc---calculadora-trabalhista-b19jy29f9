@@ -240,20 +240,7 @@ export const Login: React.FC = () => {
           </form>
 
           {/* Link discreto — primeiro acesso do administrador */}
-          <div className="mt-6 pt-5 border-t border-gray-200 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsFirstAccessOpen(true)
-                setFaState('idle')
-                setFaMessage(null)
-              }}
-              className="text-xs text-[#5A6E82] hover:text-[#C9A24B] underline underline-offset-2 transition-colors inline-flex items-center gap-1.5"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Primeiro Acesso do Administrador
-            </button>
-          </div>
+          <div className="mt-6 pt-5 border-t border-gray-200 text-center"></div>
         </div>
 
         {/* Security badge footer */}
