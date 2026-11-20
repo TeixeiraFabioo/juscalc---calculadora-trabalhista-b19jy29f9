@@ -93,9 +93,46 @@ function textoOuVazio(v: unknown): string {
   return typeof v === 'string' ? v.trim() : ''
 }
 
-/** Sanitiza um select: só aceita valores do tipo Select; caso contrário ''. */
-function selectOuVazio(v: unknown): Select {
-  return typeof v === 'string' ? (v as Select) : ''
+/**
+ * Valores aceitos pelos campos select do PocketBase (schema da coleção
+ * `atendimentos`). Rascunhos antigos podem guardar valores fora dessas listas
+ * — enviar um valor inválido causa 400 "Failed to update record".
+ */
+const MOTIVOS_SAIDA = [
+  'Demissão sem justa causa',
+  'Pedido de demissão',
+  'Justa causa',
+  'Acordo (Art. 484-A)',
+  'Ainda trabalhando',
+  'Rescisão Indireta - Ainda trabalhando',
+  'Rescisão Indireta - Já saiu',
+]
+
+const VALORES_SELECT: Record<string, string[]> = {
+  verbas_recebidas: ['nao_recebeu_nada', 'recebeu_parcial', 'recebeu_tudo'],
+  pago_prazo_10_dias: ['sim', 'nao'],
+  recebia_por_fora: ['sim', 'nao'],
+  recebia_comissoes: ['sim', 'nao'],
+  situacao_fgts: ['depositado_corretamente', 'nao_depositava_nada', 'depositava_alguns_meses'],
+}
+
+const FALTAS_GRAVES_VALIDAS = [
+  'Atraso frequente de salários',
+  'Falta de depósito do FGTS',
+  'Horas extras não pagas',
+  'Assédio moral / Humilhações',
+  'Desvio ou acúmulo de função',
+  'Falta de EPI / Risco grave',
+  'Outro',
+]
+
+/**
+ * Valida um valor de select contra a lista aceita pelo PocketBase.
+ * Valor fora da lista (rascunho antigo) volta vazio — o campo é opcional,
+ * e vazio é aceito; inválido não.
+ */
+function selectValido(v: unknown, valoresAceitos: string[]): Select {
+  return typeof v === 'string' && valoresAceitos.includes(v) ? (v as Select) : ''
 }
 
 /**
@@ -117,20 +154,23 @@ export function formToPayload(form: AtendimentoForm, userId: string): Partial<At
   payload.empresa_cnpj = text(form.empresa_cnpj)
   payload.data_admissao = date(form.data_admissao)
   payload.data_saida = date(form.data_saida)
-  payload.motivo_saida = textoOuVazio(form.motivo_saida)
-  payload.verbas_recebidas = selectOuVazio(form.verbas_recebidas)
-  payload.pago_prazo_10_dias = selectOuVazio(form.pago_prazo_10_dias)
+  payload.motivo_saida = selectValido(form.motivo_saida, MOTIVOS_SAIDA)
+  payload.verbas_recebidas = selectValido(form.verbas_recebidas, VALORES_SELECT.verbas_recebidas)
+  payload.pago_prazo_10_dias = selectValido(
+    form.pago_prazo_10_dias,
+    VALORES_SELECT.pago_prazo_10_dias,
+  )
   payload.ja_sacou_fgts = !!form.ja_sacou_fgts
   payload.ja_recebeu_seguro_desemprego = !!form.ja_recebeu_seguro_desemprego
   payload.faltas_graves = Array.isArray(form.faltas_graves)
-    ? form.faltas_graves.filter((f) => typeof f === 'string' && f !== '')
+    ? form.faltas_graves.filter((f) => typeof f === 'string' && FALTAS_GRAVES_VALIDAS.includes(f))
     : []
   payload.data_ultimo_fato_grave = date(form.data_ultimo_fato_grave)
 
   payload.ultimo_salario = num(form.ultimo_salario) ?? 0
-  payload.recebia_por_fora = selectOuVazio(form.recebia_por_fora)
+  payload.recebia_por_fora = selectValido(form.recebia_por_fora, VALORES_SELECT.recebia_por_fora)
   payload.valor_por_fora = num(form.valor_por_fora)
-  payload.recebia_comissoes = selectOuVazio(form.recebia_comissoes)
+  payload.recebia_comissoes = selectValido(form.recebia_comissoes, VALORES_SELECT.recebia_comissoes)
   payload.media_comissoes = num(form.media_comissoes)
   payload.hora_entrada = text(form.hora_entrada)
   payload.hora_saida = text(form.hora_saida)
@@ -139,7 +179,7 @@ export function formToPayload(form: AtendimentoForm, userId: string): Partial<At
   payload.horas_extras_uteis = num(form.horas_extras_uteis)
   payload.horas_extras_domingo = num(form.horas_extras_domingo)
 
-  payload.situacao_fgts = selectOuVazio(form.situacao_fgts)
+  payload.situacao_fgts = selectValido(form.situacao_fgts, VALORES_SELECT.situacao_fgts)
   payload.tem_adicional_noturno = !!form.tem_adicional_noturno
   payload.horas_noturnas_semana = num(form.horas_noturnas_semana)
   payload.tem_insalubridade = !!form.tem_insalubridade
@@ -162,6 +202,8 @@ export async function createDraft(
   userId: string,
 ): Promise<AtendimentoRecord> {
   const payload = formToPayload(form, userId)
+  // Novo atendimento sempre nasce como "Simulação" (select `status`, migração 0007).
+  payload.status = 'Simulação'
   return pb.collection(COLLECTION).create<AtendimentoRecord>(payload)
 }
 

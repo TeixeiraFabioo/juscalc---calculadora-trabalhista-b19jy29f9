@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AlertCircle, ArrowLeft, ArrowRight, Loader2, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
@@ -9,13 +9,7 @@ import { Step1Contrato } from '@/components/entrevista/Step1Contrato'
 import { Step2Remuneracao } from '@/components/entrevista/Step2Remuneracao'
 import { Step3Verbas } from '@/components/entrevista/Step3Verbas'
 import { Step4Revisao } from '@/components/entrevista/Step4Revisao'
-import {
-  loadDraft,
-  saveDraft,
-  saveResultado,
-  recordToForm,
-  formToPayload,
-} from '@/services/atendimentos'
+import { getAtendimento, saveDraft, saveResultado, recordToForm } from '@/services/atendimentos'
 import { carregarConfiguracoes } from '@/services/configuracoes'
 import { calcularTrabalhista } from '@/lib/calculo'
 import type { ResultadoCalculo } from '@/lib/calculo'
@@ -175,6 +169,8 @@ function erroTecnico(err: unknown, acao: string): string {
 
 export const NovoAtendimento: React.FC = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const idDaUrl = searchParams.get('id')
   const { user } = useAuth()
   const [form, setForm] = useState<AtendimentoForm>(emptyForm)
   const [step, setStep] = useState(1)
@@ -185,24 +181,36 @@ export const NovoAtendimento: React.FC = () => {
   const [isCalculando, setIsCalculando] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  // Carregar rascunho existente ao abrir a tela
+  // Carregar registro ao abrir a tela:
+  // - com ?id= (Editar Entrevista): carrega aquele atendimento;
+  // - sem ?id= (+ Novo Atendimento): SEMPRE começa vazio — nunca retoma rascunho antigo.
   useEffect(() => {
     let active = true
     if (!user) {
       setIsLoadingDraft(false)
       return
     }
-    loadDraft(user.id)
+    if (!idDaUrl) {
+      // Entrevista nova: formulário vazio, registro novo (criado no 1º save)
+      setForm(emptyForm)
+      setStep(1)
+      setRecordId(null)
+      setIsLoadingDraft(false)
+      return
+    }
+    getAtendimento(idDaUrl)
       .then((record) => {
         if (!active) return
         if (record) {
           setForm(recordToForm(record))
           setStep(record.step ?? 1)
           setRecordId(record.id)
+        } else {
+          if (active) setSaveError('Atendimento não encontrado. Iniciando entrevista nova.')
         }
       })
       .catch(() => {
-        if (active) setSaveError('Não foi possível carregar o rascunho salvo.')
+        if (active) setSaveError('Não foi possível carregar o atendimento solicitado.')
       })
       .finally(() => {
         if (active) setIsLoadingDraft(false)
@@ -210,7 +218,7 @@ export const NovoAtendimento: React.FC = () => {
     return () => {
       active = false
     }
-  }, [user])
+  }, [user, idDaUrl])
 
   const set = useCallback(<K extends keyof AtendimentoForm>(key: K, value: AtendimentoForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))

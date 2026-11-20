@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Calculator,
@@ -14,18 +14,41 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useAuth } from '@/context/AuthContext'
+import { getAtendimentosDoUsuario } from '@/services/atendimentos'
+import type { AtendimentoRecord } from '@/types/atendimento'
+import { fmt } from '@/lib/calculo/base'
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const [atendimentos, setAtendimentos] = useState<AtendimentoRecord[] | null>(null)
 
-  // Valores de exemplo definidos na premissa aprovada no plano v1
-  const stats = {
-    totalSimulations: 24,
-    totalValue: 'R$ 842.350,00',
-    recentAverage: 'R$ 35.097,00',
-    completedThisMonth: 8,
-  }
+  // Dados reais: atendimentos salvos na conta do usuário logado
+  useEffect(() => {
+    let active = true
+    if (!user) {
+      setAtendimentos([])
+      return
+    }
+    getAtendimentosDoUsuario(user.id).then((lista) => {
+      if (active) setAtendimentos(lista)
+    })
+    return () => {
+      active = false
+    }
+  }, [user])
+
+  const carregando = atendimentos === null
+  const lista = atendimentos ?? []
+  const totalSimulations = lista.length
+  const totalBruto = lista.reduce(
+    (soma, r) =>
+      soma + (typeof r.resultado?.total_bruto === 'number' ? r.resultado.total_bruto : 0),
+    0,
+  )
+  const comCalculo = lista.filter((r) => typeof r.resultado?.total_bruto === 'number').length
+  const mediaPorAtendimento = comCalculo > 0 ? totalBruto / comCalculo : 0
+  const ultimoAtendimento = lista[0]
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
@@ -74,12 +97,14 @@ export const Dashboard: React.FC = () => {
 
             <div className="mt-4 flex items-baseline gap-3">
               <span className="text-4xl sm:text-5xl font-black text-[#0F2A44] tracking-tight">
-                {stats.totalSimulations}
+                {carregando ? '…' : totalSimulations}
               </span>
-              <span className="inline-flex items-center text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                <ArrowUpRight className="w-3.5 h-3.5" />
-                +18% este mês
-              </span>
+              {comCalculo > 0 && (
+                <span className="inline-flex items-center text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                  {comCalculo} com cálculo
+                </span>
+              )}
             </div>
 
             <p className="mt-2 text-xs sm:text-sm text-[#5A6E82]">
@@ -87,8 +112,13 @@ export const Dashboard: React.FC = () => {
             </p>
 
             <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-medium text-gray-500">
-              <span>{stats.completedThisMonth} concluídas em novembro</span>
-              <span className="text-[#0F2A44] font-semibold">Exemplo v1</span>
+              <span>
+                {carregando
+                  ? 'Carregando seus dados…'
+                  : totalSimulations === 0
+                    ? 'Nenhum atendimento registrado ainda'
+                    : `${comCalculo} com simulação calculada`}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -107,17 +137,16 @@ export const Dashboard: React.FC = () => {
 
             <div className="mt-4 flex items-baseline gap-3">
               <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#0F2A44] tracking-tight">
-                {stats.totalValue}
+                {carregando ? '…' : fmt(totalBruto)}
               </span>
             </div>
 
             <p className="mt-2 text-xs sm:text-sm text-[#5A6E82]">
-              Soma estimada das verbas rescisórias e pedidos simulados.
+              Soma dos totais brutos das simulações já calculadas.
             </p>
 
             <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-medium text-gray-500">
-              <span>Média por atendimento: {stats.recentAverage}</span>
-              <span className="text-[#C9A24B] font-bold">Estimativa v1</span>
+              <span>Média por atendimento: {carregando ? '…' : fmt(mediaPorAtendimento)}</span>
             </div>
           </CardContent>
         </Card>
@@ -205,10 +234,34 @@ export const Dashboard: React.FC = () => {
             </p>
 
             <div className="my-5 p-4 rounded-xl bg-[#F4F6F9] border border-dashed border-gray-300 text-center">
-              <p className="text-xs font-semibold text-[#0F2A44]">Pronto para o 1º registro</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">
-                Nenhum atendimento em andamento no momento.
-              </p>
+              {carregando ? (
+                <>
+                  <p className="text-xs font-semibold text-[#0F2A44]">Carregando…</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Buscando seus atendimentos salvos.
+                  </p>
+                </>
+              ) : totalSimulations === 0 ? (
+                <>
+                  <p className="text-xs font-semibold text-[#0F2A44]">Pronto para o 1º registro</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Nenhum atendimento em andamento no momento.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold text-[#0F2A44]">
+                    {totalSimulations === 1
+                      ? '1 atendimento registrado'
+                      : `${totalSimulations} atendimentos registrados`}
+                  </p>
+                  {ultimoAtendimento?.cliente_nome && (
+                    <p className="text-[11px] text-gray-500 mt-0.5 truncate">
+                      Último cliente: {ultimoAtendimento.cliente_nome}
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
