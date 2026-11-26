@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T15:38:45.503Z",
+  "generatedAt": "2026-11-26T15:43:41.393Z",
   "collections": [
     {
       "name": "users",
@@ -29,21 +29,29 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "role",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["admin", "usuario"]
+          "selectValues": [
+            "admin",
+            "usuario"
+          ]
         },
         {
           "name": "ativo",
@@ -137,14 +145,21 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["nao_recebeu_nada", "recebeu_parcial", "recebeu_tudo"]
+          "selectValues": [
+            "nao_recebeu_nada",
+            "recebeu_parcial",
+            "recebeu_tudo"
+          ]
         },
         {
           "name": "pago_prazo_10_dias",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["sim", "nao"]
+          "selectValues": [
+            "sim",
+            "nao"
+          ]
         },
         {
           "name": "ja_sacou_fgts",
@@ -169,7 +184,10 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["sim", "nao"]
+          "selectValues": [
+            "sim",
+            "nao"
+          ]
         },
         {
           "name": "valor_por_fora",
@@ -182,7 +200,10 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["sim", "nao"]
+          "selectValues": [
+            "sim",
+            "nao"
+          ]
         },
         {
           "name": "media_comissoes",
@@ -314,14 +335,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "resultado",
@@ -361,10 +387,16 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Simulação", "Aguardando Documentos", "Ajuizado"]
+          "selectValues": [
+            "Simulação",
+            "Aguardando Documentos",
+            "Ajuizado"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_atendimentos_user ON atendimentos (user)"]
+      "indexes": [
+        "CREATE INDEX idx_atendimentos_user ON atendimentos (user)"
+      ]
     },
     {
       "name": "configuracoes_escritorio",
@@ -425,14 +457,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "nome_escritorio",
@@ -517,14 +554,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -554,7 +596,10 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["admin", "usuario"]
+          "selectValues": [
+            "admin",
+            "usuario"
+          ]
         },
         {
           "name": "ativo",
@@ -573,17 +618,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_perfis_user ON perfis (user)"]
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_perfis_user ON perfis (user)"
+      ]
     }
   ]
 }
