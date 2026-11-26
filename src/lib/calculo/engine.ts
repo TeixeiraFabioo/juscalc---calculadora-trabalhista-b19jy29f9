@@ -379,8 +379,12 @@ export function calcularTrabalhista(
   let fgtsAtrasado = 0
   if (form.situacao_fgts !== 'depositado_corretamente') {
     fgtsAtrasado = r2(baseSalarial * meses * cfg.percentual_fgts)
+    const descSituacao =
+      form.situacao_fgts === 'depositava_alguns_meses'
+        ? 'depositava apenas alguns meses'
+        : 'não depositava nada'
     memoria.push(
-      `FGTS não depositado: ${(cfg.percentual_fgts * 100).toFixed(0)}% sobre toda a remuneração do período não prescrito (${meses} meses × ${fmt(baseSalarial)}) = ${fmt(fgtsAtrasado)}.`,
+      `FGTS não depositado (${descSituacao}): estimativa de ${(cfg.percentual_fgts * 100).toFixed(0)}% sobre toda a remuneração do PERÍODO NÃO PRESCRITO — últimos ${meses} meses contados da data de saída (${meses} meses × ${fmt(baseSalarial)}) = ${fmt(fgtsAtrasado)}.`,
     )
     push(
       'FGTS não Depositado (diferenças)',
@@ -390,13 +394,14 @@ export function calcularTrabalhista(
     )
   }
 
-  let baseMulta = r2(fgtsSalarial + fgtsAtrasado)
-  let descBaseMulta = `saldo total de FGTS devido (${fmt(baseMulta)})`
-  if (form.ja_sacou_fgts) {
-    // Já sacou o FGTS anterior: multa apenas sobre saldo estimado do contrato + diferenças.
-    baseMulta = r2(baseSalarial * meses * cfg.percentual_fgts + fgtsAtrasado)
-    descBaseMulta = `saldo estimado do contrato + diferenças não depositadas (${fmt(baseMulta)}), pois o FGTS anterior já foi sacado`
-  }
+  // Base da multa rescisória: verbas rescisórias/salariais apuradas (fgtsSalarial) +
+  // diferenças de FGTS não depositadas (fgtsAtrasado). Quando o trabalhador JÁ SACOU o
+  // FGTS anterior, NÃO se recalcula um saldo histórico do contrato (que a prescrição
+  // quinquenal já limitaria): a multa incide sobre fgtsSalarial + fgtsAtrasado.
+  const baseMulta = r2(fgtsSalarial + fgtsAtrasado)
+  const descBaseMulta = form.ja_sacou_fgts
+    ? `verbas salariais/rescisórias apuradas (${fmt(fgtsSalarial)}) + diferenças de FGTS não depositadas (${fmt(fgtsAtrasado)}) = ${fmt(baseMulta)}, pois o FGTS anterior já foi sacado (sem recálculo do saldo histórico do contrato)`
+    : `saldo total de FGTS devido (${fmt(baseMulta)})`
   const multaFgts = r2(baseMulta * pctMulta)
   memoria.push(
     `Multa de ${pctLabel}% do FGTS sobre ${descBaseMulta} = ${fmt(multaFgts)}${motivo === 'Acordo (Art. 484-A)' ? ' (percentual reduzido para 20% no acordo do Art. 484-A)' : ''}.`,
@@ -419,12 +424,18 @@ export function calcularTrabalhista(
   }
 
   // Multa do Art. 467: SEMPRE aplicada quando "Rescisão Indireta - Já saiu" (verbas em atraso
-  // após a saída), ou quando o advogado marcar a opção em qualquer outro motivo.
-  if ((form.incluir_multa_467 || rescIndiretaJaSaiu) && saldoSalario > 0) {
-    const base467 = r2(saldoSalario + feriasVencidas + decimoProp)
+  // após a saída), ou quando o advogado marcar a opção em qualquer outro motivo. Vale mesmo
+  // com saldo de salário zero — basta que a base (saldo de salário + férias vencidas + 13º)
+  // seja positiva.
+  const base467 = r2(saldoSalario + feriasVencidas + decimoProp)
+  if ((form.incluir_multa_467 || rescIndiretaJaSaiu) && base467 > 0) {
+    const compoe: string[] = []
+    if (saldoSalario > 0) compoe.push(`saldo de salário (${fmt(saldoSalario)})`)
+    if (feriasVencidas > 0) compoe.push(`férias vencidas + 1/3 (${fmt(feriasVencidas)})`)
+    if (decimoProp > 0) compoe.push(`13º proporcional (${fmt(decimoProp)})`)
     const multa467 = r2(base467 * 0.5)
     memoria.push(
-      `Multa do Art. 467 da CLT (opção marcada): 50% sobre saldo de salário, férias e 13º não pagos (${fmt(base467)}) = ${fmt(multa467)}.`,
+      `Multa do Art. 467 da CLT (${form.incluir_multa_467 ? 'opção marcada' : 'rescisão indireta — verbas em atraso após a saída'}): 50% sobre as verbas não pagas — ${compoe.join(' + ')} = ${fmt(base467)} → multa = ${fmt(multa467)}.`,
     )
     push('Multa do Art. 467 da CLT', 'Art. 467 da CLT', `50% × ${fmt(base467)}`, multa467)
   }
