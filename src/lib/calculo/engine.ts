@@ -260,15 +260,20 @@ export function calcularTrabalhista(
 
   // ===== REGRA 7 — adicionais =====
   const horasNoturnas = form.tem_adicional_noturno ? num(form.horas_noturnas_semana) : 0
-  const adicNoturno = r2(valorHora * 0.2 * 1.1428 * horasNoturnas * 4.33 * meses)
+  // Hora noturna reduzida (Art. 73, §1º da CLT): em regime urbano, a hora noturna tem
+  // 52 min e 30 s = 52,5 minutos, e cada uma é paga com acréscimo de 20%. O multiplicador
+  // da hora reduzida é a fração exata 60/52,5 (≈ 1,142857...), não o valor truncado
+  // 1,1428 — o arredondamento final em centavos fica a cargo de r2.
+  const FATOR_HORA_REDUZIDA = 60 / 52.5
+  const adicNoturno = r2(valorHora * 0.2 * FATOR_HORA_REDUZIDA * horasNoturnas * 4.33 * meses)
   if (adicNoturno > 0) {
     memoria.push(
-      `Adicional noturno: ${fmt(valorHora)} × 0,20 × 1,1428 × ${horasNoturnas}h/semana × 4,33 × ${meses} meses = ${fmt(adicNoturno)}.`,
+      `Adicional noturno: ${fmt(valorHora)} × 0,20 × fator da hora reduzida (60/52,5 ≈ 1,142857 — cada hora noturna urbana tem 52 min 30 s = 52,5 minutos, logo 60 ÷ 52,5) × ${horasNoturnas}h/semana × 4,33 × ${meses} meses = ${fmt(adicNoturno)}.`,
     )
     push(
       'Adicional Noturno',
       'Art. 73 da CLT',
-      `${fmt(valorHora)}/h × 0,20 × 1,1428 × ${horasNoturnas}h × 4,33 × ${meses}`,
+      `${fmt(valorHora)}/h × 0,20 × 60/52,5 ≈ 1,142857 (hora reduzida de 52 min 30 s) × ${horasNoturnas}h × 4,33 × ${meses}`,
       adicNoturno,
     )
   }
@@ -318,7 +323,9 @@ export function calcularTrabalhista(
   }
 
   const reflexo13 = r2(habituais / 12)
-  const reflexoFerias = r2((habituais / 12) * 1.3333)
+  // Férias + 1/3 constitucional = 4/3 do valor (fração exata, sem o truncamento 1,3333).
+  const FATOR_FERIAS_UM_TERCO = 4 / 3
+  const reflexoFerias = r2((habituais / 12) * FATOR_FERIAS_UM_TERCO)
   const reflexoAviso = r2(habituais * (avisoDias / 30))
   if (reflexo13 > 0)
     push(
@@ -331,7 +338,7 @@ export function calcularTrabalhista(
     push(
       'Reflexos Habituais nas Férias + 1/3',
       'Súmula 205 do TST',
-      `${fmt(habituais)} ÷ 12 × 1,3333`,
+      `${fmt(habituais)} ÷ 12 × 4/3 (férias + 1/3 constitucional = 4/3 do valor; 4 ÷ 3 = 1,333...)`,
       reflexoFerias,
     )
   if (reflexoAviso > 0)
@@ -343,7 +350,7 @@ export function calcularTrabalhista(
     )
   if (reflexo13 > 0 || reflexoFerias > 0 || reflexoAviso > 0) {
     memoria.push(
-      `Reflexos simples (sem cascata) das verbas habituais (${fmt(habituais)}): no 13º = 1/12 (${fmt(reflexo13)}); nas férias + 1/3 = 1/12 × 1,3333 (${fmt(reflexoFerias)}); no aviso prévio = ${fmt(reflexoAviso)}.`,
+      `Reflexos simples (sem cascata) das verbas habituais (${fmt(habituais)}): no 13º = 1/12 (${fmt(reflexo13)}); nas férias + 1/3 = 1/12 × 4/3, pois férias + 1/3 constitucional equivalem a 4/3 do valor (≈ 1,333...) (${fmt(reflexoFerias)}); no aviso prévio = ${fmt(reflexoAviso)}.`,
     )
   }
 
