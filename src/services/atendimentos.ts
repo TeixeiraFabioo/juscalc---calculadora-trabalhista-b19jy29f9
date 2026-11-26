@@ -1,8 +1,33 @@
 import pb from '@/lib/pocketbase/client'
+import { extractFieldErrors } from '@/lib/pocketbase/errors'
 import type { ResultadoCalculo } from '@/lib/calculo'
 import type { AtendimentoForm, AtendimentoRecord, Select } from '@/types/atendimento'
 
 const COLLECTION = 'atendimentos'
+
+/**
+ * Reautentica silenciosamente a sessão atual (refresh do token de auth).
+ * Retorna true quando o authStore fica com um token válido no fim.
+ */
+async function reautenticar(): Promise<boolean> {
+  try {
+    if (!pb.authStore.isValid) return false
+    await pb.collection('users').authRefresh()
+    return pb.authStore.isValid
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 400 de create/update SEM nenhum erro por campo = falha da regra de API
+ * (o PocketBase nem valida os campos quando a regra nega — chega sem token
+ * de autenticação válido). Um authRefresh renova o token e o retry reenvia.
+ */
+function falhaDeRegra(err: unknown): boolean {
+  const e = err as { status?: number }
+  return e?.status === 400 && Object.keys(extractFieldErrors(err)).length === 0
+}
 
 /** Status jurídico do atendimento (select `status` — migração 0007). */
 export type AtendimentoStatus = 'Simulação' | 'Aguardando Documentos' | 'Ajuizado'
@@ -238,7 +263,14 @@ export async function createDraft(
   const payload = formToPayload(form, userId)
   // Novo atendimento sempre nasce como "Simulação" (select `status`, migração 0007).
   payload.status = 'Simulação'
-  return pb.collection(COLLECTION).create<AtendimentoRecord>(payload)
+  try {
+    return await pb.collection(COLLECTION).create<AtendimentoRecord>(payload)
+  } catch (err) {
+    if (falhaDeRegra(err) && (await reautenticar())) {
+      return pb.collection(COLLECTION).create<AtendimentoRecord>(payload)
+    }
+    throw err
+  }
 }
 
 /** Atualiza um atendimento existente. */
@@ -248,7 +280,14 @@ export async function updateDraft(
   userId: string,
 ): Promise<AtendimentoRecord> {
   const payload = formToPayload(form, userId)
-  return pb.collection(COLLECTION).update<AtendimentoRecord>(recordId, payload)
+  try {
+    return await pb.collection(COLLECTION).update<AtendimentoRecord>(recordId, payload)
+  } catch (err) {
+    if (falhaDeRegra(err) && (await reautenticar())) {
+      return pb.collection(COLLECTION).update<AtendimentoRecord>(recordId, payload)
+    }
+    throw err
+  }
 }
 
 /** Salva (cria ou atualiza) o rascunho do usuário. */
