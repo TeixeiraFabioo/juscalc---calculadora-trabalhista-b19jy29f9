@@ -75,18 +75,54 @@ export function diffMeses(inicio: string, fim: string): number {
   return Math.max(0, meses)
 }
 
-/** Avos de 13º/férias no ano aquisitivo em curso (fração ≥ 15 dias = 1 avo). */
-export function avosNoAno(dataAdmissao: string, dataFinal: string): number {
-  const [aAdm, mAdm, dAdm] = dataAdmissao.split('-').map(Number)
-  const [aFim, mFim, dFim] = dataFinal.split('-').map(Number)
-  if (!aAdm || !mAdm || !aFim || !mFim) return 0
-  // Meses decorridos desde o último aniversário contratual (dia/mês da admissão).
-  let meses = (aFim - aAdm) * 12 + (mFim - mAdm)
-  if (dFim !== undefined && dAdm !== undefined && dFim < dAdm) meses -= 1
-  let avos = meses % 12
-  // Fração ≥ 15 dias conta como mês inteiro (Art. 132 da CLT).
-  if (dFim !== undefined && dAdm !== undefined && dFim - dAdm >= 15) avos += 1
-  return Math.min(12, Math.max(0, avos))
+/** Conta avos entre duas datas: mês completo ou fração final ≥ 15 dias = 1 avo (Art. 132 da CLT). */
+function avosEntre(inicio: string, fim: string): number {
+  const [ai, mi, di] = inicio.split('-').map(Number)
+  const [af, mf, df] = fim.split('-').map(Number)
+  if (!ai || !mi || !di || !af || !mf || !df) return 0
+  if (af < ai || (af === ai && mf < mi) || (af === ai && mf === mi && df < di)) return 0
+  let meses = (af - ai) * 12 + (mf - mi)
+  if (df < di) meses -= 1
+  // Fração do mês incompleto: dias do último "aniversário" mensal até a data final.
+  let fracao = df - di
+  if (df < di) {
+    const anoRef = mf === 1 ? af - 1 : af
+    const mesRef = mf === 1 ? 12 : mf - 1
+    const diasNoMesRef = new Date(Date.UTC(anoRef, mesRef, 0)).getUTCDate()
+    fracao = diasNoMesRef - di + df
+  }
+  return Math.max(0, meses) + (fracao >= 15 ? 1 : 0)
+}
+
+/** Soma N anos a uma data YYYY-MM-DD — 29/02 cai para 28/02 em ano não bissexto. */
+function addAnos(data: string, anos: number): string {
+  if (!data || !anos) return data
+  const [a, m, d] = data.split('-').map(Number)
+  if (!a || !m || !d) return data
+  const dt = new Date(Date.UTC(a + anos, m - 1, d))
+  if (dt.getUTCMonth() + 1 !== m) {
+    const ultimo = new Date(Date.UTC(a + anos, m, 0)).getUTCDate()
+    return `${a + anos}-${String(m).padStart(2, '0')}-${String(ultimo).padStart(2, '0')}`
+  }
+  return dt.toISOString().slice(0, 10)
+}
+
+/** Avos de 13º no ano civil da data final — de janeiro (ou da admissão, se no mesmo ano) até a
+ * data final; cada mês com fração ≥ 15 dias trabalhados = 1 avo, máximo 12 (Lei nº 4.090/1962). */
+export function avos13NoAno(dataAdmissao: string, dataFinal: string): number {
+  const anoFinal = Number(dataFinal.split('-')[0])
+  const anoAdmissao = Number(dataAdmissao.split('-')[0])
+  if (!anoFinal || !anoAdmissao) return 0
+  const inicio = anoAdmissao === anoFinal ? dataAdmissao : `${anoFinal}-01-01`
+  return avosEntre(inicio, dataFinal)
+}
+
+/** Avos de férias no período aquisitivo em curso — a partir do último aniversário contratual
+ * (dia/mês da admissão); cada mês/fração ≥ 15 dias = 1 avo, máximo 12 (Art. 132 da CLT). */
+export function avosFeriasPeriodo(dataAdmissao: string, dataFinal: string): number {
+  const anosCompletos = Math.floor(diffMeses(dataAdmissao, dataFinal) / 12)
+  const inicioPeriodo = addAnos(dataAdmissao, anosCompletos)
+  return avosEntre(inicioPeriodo, dataFinal)
 }
 
 /** Soma N dias a uma data YYYY-MM-DD — aritmética puramente em calendário UTC. */

@@ -4,7 +4,8 @@ import type { AtendimentoForm } from '@/types/atendimento'
 import {
   CONFIG_PADRAO,
   addDias,
-  avosNoAno,
+  avos13NoAno,
+  avosFeriasPeriodo,
   diffMeses,
   fmt,
   fmtData,
@@ -159,7 +160,7 @@ export function calcularTrabalhista(
   )
 
   // ===== REGRA 5 — 13º proporcional, férias vencidas e proporcionais =====
-  const avos13 = avosNoAno(dataAdmissao, dataFinalProjetada)
+  const avos13 = avos13NoAno(dataAdmissao, dataFinalProjetada)
   const decimoProp = r2((baseSalarial / 12) * avos13)
   memoria.push(
     `13º salário proporcional: ${avos13}/12 avos de ${fmt(baseSalarial)} = ${fmt(decimoProp)} (fração ≥ 15 dias conta como mês inteiro, já com a projeção do aviso prévio).`,
@@ -173,20 +174,36 @@ export function calcularTrabalhista(
 
   let feriasVencidas = 0
   if (form.tem_ferias_vencidas) {
+    // Dobra do Art. 137 da CLT: 1º período vencido simples; períodos vencidos além
+    // do prazo concessivo em dobro (lógica genérica: 1 simples + N-1 em dobro).
     const periodos = Math.max(1, num(form.periodos_ferias, 1))
-    feriasVencidas = r2((baseSalarial + baseSalarial / 3) * periodos)
+    const valorPeriodo = r2(baseSalarial + baseSalarial / 3)
+    const partes: string[] = []
+    let total = 0
+    for (let i = 1; i <= periodos; i++) {
+      const multiplicador = i === 1 ? 1 : 2
+      total += valorPeriodo * multiplicador
+      partes.push(
+        i === 1
+          ? `1º período vencido: ${fmt(valorPeriodo)} (simples)`
+          : `${i}º período vencido em dobro (Art. 137 da CLT): ${fmt(valorPeriodo)} × 2 = ${fmt(valorPeriodo * 2)}`,
+      )
+    }
+    feriasVencidas = r2(total)
     memoria.push(
-      `Férias vencidas + 1/3: ${periodos} período(s) aquisitivo(s) × (${fmt(baseSalarial)} + 1/3) = ${fmt(feriasVencidas)}${periodos >= 2 ? ' — em dobro, vencidas há mais de 12 meses' : ''}.`,
+      `Férias vencidas + 1/3 constitucional (${periodos} período(s) aquisitivo(s) vencido(s)): ${partes.join('; ')} — total ${fmt(feriasVencidas)} (1/3 já incluso em cada período).`,
     )
     push(
       'Férias Vencidas + 1/3 Constitucional',
       'Art. 137 e 142 da CLT',
-      `${periodos} × (${fmt(baseSalarial)} + 1/3)`,
+      periodos === 1
+        ? `1 × (${fmt(baseSalarial)} + 1/3)`
+        : `1 × (${fmt(baseSalarial)} + 1/3) + ${periodos - 1} × (${fmt(baseSalarial)} + 1/3) × 2`,
       feriasVencidas,
     )
   }
 
-  const avosFerias = avos13
+  const avosFerias = avosFeriasPeriodo(dataAdmissao, dataFinalProjetada)
   const feriasProp = r2((baseSalarial + baseSalarial / 3) * (avosFerias / 12))
   memoria.push(
     `Férias proporcionais + 1/3: ${avosFerias}/12 × (${fmt(baseSalarial)} + 1/3) = ${fmt(feriasProp)}.`,
