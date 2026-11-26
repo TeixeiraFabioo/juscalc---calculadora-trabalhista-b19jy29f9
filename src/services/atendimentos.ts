@@ -91,6 +91,7 @@ export function recordToForm(record: AtendimentoRecord): AtendimentoForm {
     tem_dano_moral: !!record.tem_dano_moral,
     valor_dano_moral: numToInput(record.valor_dano_moral),
     incluir_multa_467: !!record.incluir_multa_467,
+    incluir_multa_479: !!record.incluir_multa_479,
   }
 }
 
@@ -146,6 +147,7 @@ const MOTIVOS_SAIDA = [
   'Ainda trabalhando',
   'Rescisão Indireta - Ainda trabalhando',
   'Rescisão Indireta - Já saiu',
+  'reconhecimento_vinculo',
 ]
 
 const VALORES_SELECT: Record<string, string[]> = {
@@ -251,6 +253,7 @@ export function formToPayload(form: AtendimentoForm, userId: string): Partial<At
   payload.tem_dano_moral = !!form.tem_dano_moral
   payload.valor_dano_moral = num(form.valor_dano_moral)
   payload.incluir_multa_467 = !!form.incluir_multa_467
+  payload.incluir_multa_479 = !!form.incluir_multa_479
 
   return payload
 }

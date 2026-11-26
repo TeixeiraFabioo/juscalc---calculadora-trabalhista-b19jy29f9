@@ -1,6 +1,7 @@
 import React from 'react'
 import { Pencil, Calculator, Lock, Loader2 } from 'lucide-react'
 import type { AtendimentoForm } from '@/types/atendimento'
+import { MOTIVO_RECONHECIMENTO, LABEL_RECONHECIMENTO } from './Step1Contrato'
 
 interface Step4Props {
   form: AtendimentoForm
@@ -80,14 +81,27 @@ export const Step4Revisao: React.FC<Step4Props> = ({ form, onEdit, onCalcular, i
         <Row label="Nome da empresa reclamada" value={form.empresa_nome} />
         <Row label="CNPJ (opcional)" value={form.empresa_cnpj} />
         <Row
-          label="Data de admissão"
+          label={
+            form.motivo_saida === MOTIVO_RECONHECIMENTO
+              ? 'Início do trabalho sem registro'
+              : 'Data de admissão'
+          }
           value={form.data_admissao ? form.data_admissao.split('-').reverse().join('/') : ''}
         />
         <Row
-          label="Data de saída (último dia trabalhado)"
+          label={
+            form.motivo_saida === MOTIVO_RECONHECIMENTO
+              ? 'Fim do trabalho (ou hoje, se ainda trabalha)'
+              : 'Data de saída (último dia trabalhado)'
+          }
           value={form.data_saida ? form.data_saida.split('-').reverse().join('/') : ''}
         />
-        <Row label="Motivo da saída" value={form.motivo_saida} />
+        <Row
+          label="Motivo da saída"
+          value={
+            form.motivo_saida === MOTIVO_RECONHECIMENTO ? LABEL_RECONHECIMENTO : form.motivo_saida
+          }
+        />
         <Row
           label="Recebeu as verbas rescisórias?"
           value={form.verbas_recebidas ? verbasLabels[form.verbas_recebidas] : ''}
@@ -106,7 +120,14 @@ export const Step4Revisao: React.FC<Step4Props> = ({ form, onEdit, onCalcular, i
       </Section>
 
       <Section title="2. Remuneração e Jornada de Trabalho" step={2} onEdit={onEdit}>
-        <Row label="Último salário bruto em carteira" value={fmtBRL(form.ultimo_salario)} />
+        <Row
+          label={
+            form.motivo_saida === MOTIVO_RECONHECIMENTO
+              ? 'Salário combinado/recebido'
+              : 'Último salário bruto em carteira'
+          }
+          value={fmtBRL(form.ultimo_salario)}
+        />
         <Row
           label='Recebia salário "por fora"?'
           value={form.recebia_por_fora ? simNaoLabels[form.recebia_por_fora] : ''}
@@ -179,6 +200,12 @@ export const Step4Revisao: React.FC<Step4Props> = ({ form, onEdit, onCalcular, i
           label="Incluir estimativa de Multa Art. 467"
           value={boolLabel(form.incluir_multa_467)}
         />
+        {form.motivo_saida === MOTIVO_RECONHECIMENTO && (
+          <Row
+            label="Incluir multa do Art. 479 (contrato verbal > 12 meses)"
+            value={boolLabel(form.incluir_multa_479)}
+          />
+        )}
       </Section>
 
       {/* CTA — motor de cálculo */}

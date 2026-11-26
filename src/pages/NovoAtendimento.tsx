@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { toast } from '@/hooks/use-toast'
 import { ProgressSteps } from '@/components/entrevista/ProgressSteps'
-import { Step1Contrato } from '@/components/entrevista/Step1Contrato'
+import { Step1Contrato, MOTIVO_RECONHECIMENTO } from '@/components/entrevista/Step1Contrato'
 import { Step2Remuneracao } from '@/components/entrevista/Step2Remuneracao'
 import { Step3Verbas } from '@/components/entrevista/Step3Verbas'
 import { Step4Revisao } from '@/components/entrevista/Step4Revisao'
@@ -61,6 +61,7 @@ const emptyForm: AtendimentoForm = {
   tem_dano_moral: false,
   valor_dano_moral: '',
   incluir_multa_467: false,
+  incluir_multa_479: false,
 }
 
 /** Validação básica por etapa: retorna erros por campo. */
@@ -75,7 +76,8 @@ function validateStep(form: AtendimentoForm, step: number): Record<string, strin
     req('cliente_cpf', form.cliente_cpf.trim() !== '')
     req('empresa_nome', form.empresa_nome.trim() !== '')
     req('data_admissao', form.data_admissao !== '')
-    req('data_saida', form.data_saida !== '')
+    // Reconhecimento de vínculo: sem data de fim = ainda trabalha (o motor projeta até hoje).
+    req('data_saida', form.data_saida !== '' || form.motivo_saida === MOTIVO_RECONHECIMENTO)
     req('motivo_saida', form.motivo_saida !== '')
     if (form.motivo_saida.startsWith('Rescisão Indireta')) {
       req('data_ultimo_fato_grave', form.data_ultimo_fato_grave !== '')

@@ -67,15 +67,26 @@ export const Resultado: React.FC = () => {
 
   // BLOCO 5 — Rescisão Indireta: identificação, card explicativo e alerta de "ainda trabalhando".
   const rescisaoIndireta = !!record?.motivo_saida?.startsWith('Rescisão Indireta')
+  // Reconhecimento de vínculo — trabalhador que nunca teve carteira assinada.
+  const reconhecimentoVinculo = record?.motivo_saida === 'reconhecimento_vinculo'
   const aindaTrabalhando =
     record?.motivo_saida === 'Rescisão Indireta - Ainda trabalhando' ||
-    record?.motivo_saida === 'Ainda trabalhando'
+    record?.motivo_saida === 'Ainda trabalhando' ||
+    (reconhecimentoVinculo && !record?.data_saida)
 
   const grupoFgts = r?.grupos.find((g) => g.nome === 'FGTS + Multa de 40%')
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full space-y-6">
       {/* Tag de identificação — Rescisão Indireta */}
+      {reconhecimentoVinculo && (
+        <div className="flex justify-start">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C9A24B] text-white text-xs font-extrabold uppercase tracking-wider shadow-sm">
+            <Scale className="w-3.5 h-3.5" />
+            Reconhecimento de Vínculo
+          </span>
+        </div>
+      )}
       {rescisaoIndireta && (
         <div className="flex justify-start">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-extrabold uppercase tracking-wider shadow-sm">
@@ -154,6 +165,32 @@ export const Resultado: React.FC = () => {
                   É quando a empresa descumpre graves obrigações do contrato. Na Justiça, você tem o
                   direito de sair recebendo todos os direitos como se tivesse sido demitido sem
                   justa causa.
+                </p>
+              </div>
+              {aindaTrabalhando && (
+                <div className="rounded-xl border border-red-300 bg-red-50 p-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm font-bold text-red-700 leading-relaxed">
+                    IMPORTANTE: Não peça demissão e não pare de trabalhar antes da orientação final
+                    do advogado para não perder seus direitos.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Reconhecimento de Vínculo — card explicativo dourado + alerta de "ainda trabalha" */}
+          {reconhecimentoVinculo && (
+            <div className="space-y-3">
+              <div className="rounded-2xl border-2 border-[#C9A24B] bg-[#C9A24B]/10 p-5 shadow-sm">
+                <h2 className="text-sm sm:text-base font-extrabold text-[#0F2A44] flex items-center gap-2">
+                  <Scale className="w-5 h-5 text-[#C9A24B]" />
+                  O que é Reconhecimento de Vínculo?
+                </h2>
+                <p className="mt-1.5 text-sm sm:text-base text-[#0F2A44] leading-relaxed">
+                  É a ação em que a Justiça declara que você trabalhou para a empresa mesmo sem
+                  carteira assinada, garantindo os mesmos direitos de quem foi demitido sem justa
+                  causa.
                 </p>
               </div>
               {aindaTrabalhando && (

@@ -1,6 +1,7 @@
 import React from 'react'
 import type { AtendimentoForm, Select } from '@/types/atendimento'
 import { Field, TextInput, SelectInput, Checkbox } from './fields'
+import { MOTIVO_RECONHECIMENTO } from './Step1Contrato'
 
 interface StepProps {
   form: AtendimentoForm
@@ -190,6 +191,20 @@ export const Step3Verbas: React.FC<StepProps> = ({ form, set, errors }) => {
           ⚠ Apenas se houver verbas rescisórias incontroversas
         </p>
       </div>
+
+      {/* Multa Art. 479 — contrato verbal sem registro (Reconhecimento de Vínculo) */}
+      {form.motivo_saida === MOTIVO_RECONHECIMENTO && (
+        <div className="rounded-xl border border-[#C9A24B]/50 bg-[#E8D5A3]/25 p-3.5 space-y-2">
+          <Checkbox
+            label="Incluir multa do Art. 479 da CLT (multa de até 2 salários quando o contrato verbal durou mais de 12 meses sem registro)"
+            checked={form.incluir_multa_479}
+            onChange={(v) => set('incluir_multa_479', v)}
+          />
+          <p className="text-[11px] font-semibold text-[#8A6A1F] flex items-center gap-1.5">
+            ⚠ Aplicada apenas se o período de trabalho sem registro for maior que 12 meses
+          </p>
+        </div>
+      )}
     </div>
   )
 }

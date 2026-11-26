@@ -15,6 +15,7 @@ import {
   Copy,
   Trash2,
   CheckCircle2,
+  Scale,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -332,6 +333,12 @@ export const Atendimentos: React.FC = () => {
                           {at.cliente_nome || 'Cliente sem nome'}
                         </span>
                         {rescisaoIndireta && <TagRescisaoIndireta />}
+                        {at.motivo_saida === 'reconhecimento_vinculo' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#C9A24B] text-white text-[10px] font-extrabold uppercase tracking-wider">
+                            <Scale className="w-3 h-3" />
+                            Reconhecimento de Vínculo
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-[#5A6E82] truncate flex items-center gap-1.5">
                         <Briefcase className="w-3 h-3 flex-shrink-0" />

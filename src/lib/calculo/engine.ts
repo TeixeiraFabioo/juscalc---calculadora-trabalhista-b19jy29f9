@@ -47,13 +47,17 @@ export function calcularTrabalhista(
   }
 
   const motivo = form.motivo_saida
+  const reconhecimentoVinculo = motivo === 'reconhecimento_vinculo'
   const rescisaoIndireta = motivo.startsWith('Rescisão Indireta')
   const rescIndiretaAindaTrabalhando = motivo === 'Rescisão Indireta - Ainda trabalhando'
   const rescIndiretaJaSaiu = motivo === 'Rescisão Indireta - Já saiu'
   const aindaTrabalhando = motivo === 'Ainda trabalhando' || rescIndiretaAindaTrabalhando
-  // Rescisão Indireta "Ainda trabalhando": contrato vigente — projeta o término na data atual.
+  // Reconhecimento de vínculo sem data de fim: o trabalhador ainda está laborando —
+  // projeta o término na data atual (o vínculo vale até hoje para fins de cálculo).
   const dataSaidaBase =
-    form.data_saida || (rescIndiretaAindaTrabalhando ? hojeLocalISO() : '') || hojeLocalISO()
+    form.data_saida ||
+    (rescIndiretaAindaTrabalhando || reconhecimentoVinculo ? hojeLocalISO() : '') ||
+    hojeLocalISO()
   // Verbas que uma DEMISSÃO SEM JUSTA CAUSA gera (o Rescisão Indireta deve espelhar exatamente):
   const verbasDemissaoSemJustaCausa = [
     'Aviso Prévio Indenizado',
@@ -62,6 +66,7 @@ export function calcularTrabalhista(
     'Férias Vencidas + 1/3 Constitucional',
     'Férias Proporcionais + 1/3 Constitucional',
     'FGTS sobre Verbas Salariais',
+    'FGTS não Depositado (diferenças)',
     `Multa Rescisória de ${(cfg.multa_fgts * 100).toFixed(0)}% do FGTS`,
     'Multa do Art. 477 da CLT',
     'Multa do Art. 467 da CLT',
@@ -70,9 +75,19 @@ export function calcularTrabalhista(
   const dataAdmissao = form.data_admissao || dataSaidaBase
 
   // ===== REGRAS 1 e 2 — prescrição quinquenal e base salarial =====
+  // Reconhecimento de vínculo: a base é o SALÁRIO COMBINADO (campo ultimo_salario,
+  // rebatizado) — sem somar "por fora" nem comissões, que já fazem parte do combinado.
   const salarioBruto = num(form.ultimo_salario)
-  const porFora = form.recebia_por_fora === 'sim' ? num(form.valor_por_fora) : 0
-  const comissoes = form.recebia_comissoes === 'sim' ? num(form.media_comissoes) : 0
+  const porFora = reconhecimentoVinculo
+    ? 0
+    : form.recebia_por_fora === 'sim'
+      ? num(form.valor_por_fora)
+      : 0
+  const comissoes = reconhecimentoVinculo
+    ? 0
+    : form.recebia_comissoes === 'sim'
+      ? num(form.media_comissoes)
+      : 0
   const baseSalarial = r2(salarioBruto + porFora + comissoes)
 
   let meses = diffMeses(dataAdmissao, dataSaidaBase)
@@ -86,11 +101,21 @@ export function calcularTrabalhista(
   }
   const valorHora = baseSalarial / cfg.divisor_padrao
 
+  if (reconhecimentoVinculo) {
+    memoria.push(
+      `Cenário de RECONHECIMENTO DE VÍNCULO: o trabalhador nunca teve carteira assinada. A base salarial é o SALÁRIO COMBINADO/RECEBIDO (${fmt(salarioBruto)}) — sem somar salário "por fora" nem comissões, que já integram o combinado.`,
+    )
+    memoria.push(
+      'A declaração do vínculo de emprego em si é IMPRESCRITÍVEL; as verbas em dinheiro prescrevem em 5 anos (Art. 7º, XXIX da CF/88) — verbas mensais recorrentes limitadas aos últimos 60 meses.',
+    )
+  }
   memoria.push(
-    `Base Salarial = Salário Bruto (${fmt(salarioBruto)})` +
-      (porFora > 0 ? ` + salário "por fora" (${fmt(porFora)})` : '') +
-      (comissoes > 0 ? ` + média de comissões (${fmt(comissoes)})` : '') +
-      ` = ${fmt(baseSalarial)}.`,
+    reconhecimentoVinculo
+      ? `Base Salarial = Salário combinado/recebido (${fmt(salarioBruto)}) = ${fmt(baseSalarial)}.`
+      : `Base Salarial = Salário Bruto (${fmt(salarioBruto)})` +
+          (porFora > 0 ? ` + salário "por fora" (${fmt(porFora)})` : '') +
+          (comissoes > 0 ? ` + média de comissões (${fmt(comissoes)})` : '') +
+          ` = ${fmt(baseSalarial)}.`,
   )
   memoria.push(
     `Valor da hora = Base Salarial ÷ divisor ${cfg.divisor_padrao} = ${fmt(valorHora)} por hora.`,
@@ -384,10 +409,13 @@ export function calcularTrabalhista(
   )
 
   let fgtsAtrasado = 0
-  if (form.situacao_fgts !== 'depositado_corretamente') {
+  // Reconhecimento de vínculo: a empresa NUNCA depositou FGTS (não havia registro) —
+  // os 8% incidem retroativamente sobre TODA a remuneração do período real de trabalho.
+  if (reconhecimentoVinculo || form.situacao_fgts !== 'depositado_corretamente') {
     fgtsAtrasado = r2(baseSalarial * meses * cfg.percentual_fgts)
-    const descSituacao =
-      form.situacao_fgts === 'depositava_alguns_meses'
+    const descSituacao = reconhecimentoVinculo
+      ? 'nunca houve registro em carteira — FGTS retroativo sobre todo o período de trabalho'
+      : form.situacao_fgts === 'depositava_alguns_meses'
         ? 'depositava apenas alguns meses'
         : 'não depositava nada'
     memoria.push(
@@ -447,6 +475,31 @@ export function calcularTrabalhista(
     push('Multa do Art. 467 da CLT', 'Art. 467 da CLT', `50% × ${fmt(base467)}`, multa467)
   }
 
+  // Multa do Art. 479 da CLT (contrato verbal sem registro): apenas no cenário de
+  // Reconhecimento de Vínculo, quando o advogado marcar a opção E o período de trabalho
+  // (real, sem projeção do aviso) for MAIOR que 12 meses → 2 salários; período de até
+  // 12 meses → a multa não é devida (Art. 479 caput: 1 salário até 12 meses — não aplicada
+  // aqui por opção de cálculo conservadora; período > 12 meses → 2 salários, Art. 479, II).
+  if (reconhecimentoVinculo && form.incluir_multa_479) {
+    const mesesTotais = diffMeses(dataAdmissao, dataSaidaBase)
+    if (mesesTotais > 12) {
+      const multa479 = r2(baseSalarial * 2)
+      memoria.push(
+        `Multa do Art. 479 da CLT: contrato verbal sem registro em carteira por ${mesesTotais} meses (mais de 12) → multa de 2 salários = 2 × ${fmt(baseSalarial)} = ${fmt(multa479)}.`,
+      )
+      push(
+        'Multa Art. 479 — contrato verbal sem registro',
+        'Art. 479 da CLT',
+        `2 × ${fmt(baseSalarial)} (${mesesTotais} meses > 12)`,
+        multa479,
+      )
+    } else {
+      memoria.push(
+        `Multa do Art. 479 da CLT NÃO aplicada: o contrato verbal durou ${mesesTotais} mês(es) (até 12) — a multa só é devida quando o período sem registro supera 12 meses.`,
+      )
+    }
+  }
+
   const habilitaSeguro =
     (motivo === 'Demissão sem justa causa' ||
       motivo === 'Acordo (Art. 484-A)' ||
@@ -482,6 +535,12 @@ export function calcularTrabalhista(
   memoria.push(
     `TOTAL BRUTO DA AÇÃO = ${fmt(totalBruto)} (soma de ${verbas.length} verba${verbas.length === 1 ? '' : 's'}).`,
   )
+
+  if (reconhecimentoVinculo) {
+    memoria.push(
+      'Seguro-Desemprego: NÃO calculado neste cenário — o trabalhador nunca teve carteira assinada; o benefício depende de registro formal de desligamento (não cabe em reconhecimento de vínculo).',
+    )
+  }
 
   return {
     verbas,

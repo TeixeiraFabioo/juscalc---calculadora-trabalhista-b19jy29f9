@@ -52,6 +52,21 @@ const OBRIGATORIOS: { id: string; label: string }[] = [
   { id: 'procuracao', label: 'Procuração assinada' },
 ]
 
+/** Obrigatórios do cenário de Reconhecimento de Vínculo: sem CTPS nem Extrato
+ * FGTS (o trabalhador nunca teve carteira assinada) — no lugar, provas de vínculo. */
+const OBRIGATORIOS_RECONHECIMENTO: { id: string; label: string }[] = [
+  { id: 'doc_foto', label: 'Documento com foto (RG/CNH)' },
+  { id: 'cpf', label: 'CPF' },
+  { id: 'comprovante_residencia', label: 'Comprovante de residência atualizado' },
+  { id: 'recibos_pagamento', label: 'Recibos de pagamento (ou comprovantes de PIX/depósito)' },
+  { id: 'conversas_whatsapp', label: 'Conversas de WhatsApp/e-mails com a empresa' },
+  { id: 'escalas_horario', label: 'Escalas de trabalho ou controles de horário' },
+  { id: 'crachacesso', label: 'Crachá/cartão de acesso/e-mail corporativo' },
+  { id: 'testemunhas', label: 'Contato de 2 testemunhas que viram o trabalho' },
+  { id: 'extrato_cnis', label: 'Extrato CNIS (app Meu INSS)' },
+  { id: 'procuracao', label: 'Procuração assinada' },
+]
+
 /** Condições dinâmicas: exibidas apenas se a verba/dado correspondente existe. */
 interface Condicao {
   id: string
@@ -213,7 +228,10 @@ export function gerarChecklist(
   const itens: ChecklistItem[] = []
   const r = record.resultado
 
-  for (const doc of OBRIGATORIOS) {
+  // Reconhecimento de Vínculo: troca CTPS/Extrato FGTS pelas provas de vínculo.
+  const obrigatorios =
+    record.motivo_saida === 'reconhecimento_vinculo' ? OBRIGATORIOS_RECONHECIMENTO : OBRIGATORIOS
+  for (const doc of obrigatorios) {
     itens.push(montarItem(doc.id, doc.label, 'obrigatorios', undefined, anexos, record))
   }
 

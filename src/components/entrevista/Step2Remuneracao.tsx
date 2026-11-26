@@ -1,6 +1,7 @@
 import React from 'react'
 import type { AtendimentoForm, Select } from '@/types/atendimento'
 import { Field, TextInput, RadioGroup } from './fields'
+import { MOTIVO_RECONHECIMENTO } from './Step1Contrato'
 
 interface StepProps {
   form: AtendimentoForm
@@ -20,7 +21,15 @@ export const Step2Remuneracao: React.FC<StepProps> = ({ form, set, errors }) => 
         </p>
       </div>
 
-      <Field label="Último salário bruto em carteira (R$)" required error={errors.ultimo_salario}>
+      <Field
+        label={
+          form.motivo_saida === MOTIVO_RECONHECIMENTO
+            ? 'Salário combinado/recebido (R$)'
+            : 'Último salário bruto em carteira (R$)'
+        }
+        required
+        error={errors.ultimo_salario}
+      >
         <TextInput
           type="number"
           min="0"

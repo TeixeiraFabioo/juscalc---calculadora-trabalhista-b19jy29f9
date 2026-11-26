@@ -18,6 +18,12 @@ export const MotivosSaida = [
   'Rescisão Indireta - Já saiu',
 ] as const
 
+/** Valor do select que identifica o Reconhecimento de Vínculo (migração 0009). */
+export const MOTIVO_RECONHECIMENTO = 'reconhecimento_vinculo'
+
+/** Rótulo amigável do motivo de saída especial (o valor no banco é o id). */
+export const LABEL_RECONHECIMENTO = 'Reconhecimento de vínculo — nunca teve carteira assinada'
+
 /** Opções exatas de falta grave da empresa (BLOCO 5 — Rescisão Indireta). */
 export const FaltasGraves = [
   'Atraso frequente de salários',
@@ -78,7 +84,15 @@ export const Step1Contrato: React.FC<StepProps> = ({ form, set, errors }) => {
           />
         </Field>
 
-        <Field label="Data de admissão" required error={errors.data_admissao}>
+        <Field
+          label={
+            form.motivo_saida === MOTIVO_RECONHECIMENTO
+              ? 'Início do trabalho sem registro'
+              : 'Data de admissão'
+          }
+          required
+          error={errors.data_admissao}
+        >
           <TextInput
             type="date"
             value={form.data_admissao}
@@ -87,7 +101,15 @@ export const Step1Contrato: React.FC<StepProps> = ({ form, set, errors }) => {
           />
         </Field>
 
-        <Field label="Data de saída (ou último dia trabalhado)" required error={errors.data_saida}>
+        <Field
+          label={
+            form.motivo_saida === MOTIVO_RECONHECIMENTO
+              ? 'Fim do trabalho (ou hoje, se ainda trabalha)'
+              : 'Data de saída (ou último dia trabalhado)'
+          }
+          required
+          error={errors.data_saida}
+        >
           <TextInput
             type="date"
             value={form.data_saida}
@@ -110,6 +132,7 @@ export const Step1Contrato: React.FC<StepProps> = ({ form, set, errors }) => {
               {m}
             </option>
           ))}
+          <option value={MOTIVO_RECONHECIMENTO}>{LABEL_RECONHECIMENTO}</option>
         </SelectInput>
       </Field>
 
@@ -192,23 +215,32 @@ export const Step1Contrato: React.FC<StepProps> = ({ form, set, errors }) => {
         )}
       </div>
 
-      <div className="space-y-2">
-        <p className="text-xs font-bold text-[#0F2A44]">
-          Já sacou o FGTS anterior ou recebeu guias do Seguro-Desemprego?
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Checkbox
-            label="Já sacou o FGTS"
-            checked={form.ja_sacou_fgts}
-            onChange={(v) => set('ja_sacou_fgts', v)}
-          />
-          <Checkbox
-            label="Já recebeu Seguro-Desemprego"
-            checked={form.ja_recebeu_seguro_desemprego}
-            onChange={(v) => set('ja_recebeu_seguro_desemprego', v)}
-          />
+      {form.motivo_saida !== MOTIVO_RECONHECIMENTO && (
+        <div className="space-y-2">
+          <p className="text-xs font-bold text-[#0F2A44]">
+            Já sacou o FGTS anterior ou recebeu guias do Seguro-Desemprego?
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Checkbox
+              label="Já sacou o FGTS"
+              checked={form.ja_sacou_fgts}
+              onChange={(v) => set('ja_sacou_fgts', v)}
+            />
+            <Checkbox
+              label="Já recebeu Seguro-Desemprego"
+              checked={form.ja_recebeu_seguro_desemprego}
+              onChange={(v) => set('ja_recebeu_seguro_desemprego', v)}
+            />
+          </div>
         </div>
-      </div>
+      )}
+
+      {form.motivo_saida === MOTIVO_RECONHECIMENTO && (
+        <p className="text-xs text-[#5A6E82] rounded-lg bg-amber-50 border border-amber-200 p-3">
+          Nesse cenário a Justiça vai declarar o vínculo de emprego (a "carteirinha assinada") e
+          condenar a empresa a pagar os mesmos direitos de quem foi demitido sem justa causa.
+        </p>
+      )}
     </div>
   )
 }
