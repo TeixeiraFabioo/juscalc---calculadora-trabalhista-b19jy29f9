@@ -62,6 +62,8 @@ export interface AtendimentoForm {
   tem_dano_moral: boolean
   valor_dano_moral: string
   incluir_multa_467: boolean
+  // Reconhecimento de Vínculo — contrato verbal sem registro (migração 0009)
+  incluir_multa_479: boolean
 
   // Controle
   step: number // 1..4
@@ -108,6 +110,8 @@ export interface AtendimentoRecord {
   tem_dano_moral?: boolean
   valor_dano_moral?: number
   incluir_multa_467?: boolean
+  /** Checkbox da multa do Art. 479 da CLT (contrato verbal — migração 0009). */
+  incluir_multa_479?: boolean
   /** Status jurídico do atendimento (BLOCO 7 — migração 0007). */
   status?: 'Simulação' | 'Aguardando Documentos' | 'Ajuizado'
   checklist_marcados?: { entregues?: string[] } | null

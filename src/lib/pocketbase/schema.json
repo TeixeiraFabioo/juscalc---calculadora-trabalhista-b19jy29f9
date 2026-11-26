@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T16:43:59.288Z",
+  "generatedAt": "2026-11-26T20:32:32.007Z",
   "collections": [
     {
       "name": "users",
@@ -129,7 +129,8 @@
             "Acordo (Art. 484-A)",
             "Ainda trabalhando",
             "Rescisão Indireta - Ainda trabalhando",
-            "Rescisão Indireta - Já saiu"
+            "Rescisão Indireta - Já saiu",
+            "reconhecimento_vinculo"
           ]
         },
         {
@@ -362,6 +363,12 @@
           "required": false,
           "system": false,
           "selectValues": ["Simulação", "Aguardando Documentos", "Ajuizado"]
+        },
+        {
+          "name": "incluir_multa_479",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_atendimentos_user ON atendimentos (user)"]
