@@ -80,17 +80,32 @@ function dateOuNull(v: string): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
 
-/** Sanitiza um número de formulário: vazio/inválido vira null (campo number opcional). */
-function numOuNull(v: string): number | null {
+/** Sanitiza um número de formulário: vazio/inválido vira 0 (o PocketBase aceita
+ * 0 mesmo em campos com min/max — null explícito é rejeitado com 400). */
+function numOuZero(v: string): number {
   const s = (v ?? '').trim()
-  if (s === '') return null
+  if (s === '') return 0
   const n = Number(s.replace(',', '.'))
-  return Number.isNaN(n) ? null : n
+  return Number.isNaN(n) ? 0 : n
 }
 
 /** Sanitiza um texto: vazio vira '' (campo text aceita string vazia). */
-function textoOuVazio(v: unknown): string {
-  return typeof v === 'string' ? v.trim() : ''
+function textoOuVazio(v: unknown, max?: number): string {
+  const s = typeof v === 'string' ? v.trim() : ''
+  return max !== undefined ? s.slice(0, max) : s
+}
+
+/**
+ * Define um valor no payload SOMENTE se não estiver vazio (null/''):
+ * o PocketBase rejeita null explícito em campos date/select/number
+ * (400 "Failed to create record") — a chave vazia deve ser omitida.
+ */
+function setSePreenchido<T extends object, K extends keyof T>(
+  payload: T,
+  key: K,
+  value: T[K] | null | '',
+): void {
+  if (value !== null && value !== '') payload[key] = value
 }
 
 /**
@@ -137,49 +152,68 @@ function selectValido(v: unknown, valoresAceitos: string[]): Select {
 
 /**
  * Converte o estado do formulário + usuário em payload SANITIZADO para o banco.
- * - datas vazias → null (campo date do PocketBase rejeita "");
- * - números vazios → null;
+ * - datas vazias → chave OMITIDA (o PocketBase rejeita null e "" em date);
+ * - números vazios/inválidos → 0 (aceito mesmo em campos com min/max);
+ * - selects vazios/inválidos → chave OMITIDA (null é rejeitado);
+ * - textos vazios → '' (campo text aceita) e truncados no limite do schema;
  * - user sempre com o id do usuário autenticado.
  */
 export function formToPayload(form: AtendimentoForm, userId: string): Partial<AtendimentoRecord> {
   const payload: Partial<AtendimentoRecord> = { user: userId, step: form.step }
 
   const text = textoOuVazio
-  const num = numOuNull
+  const num = numOuZero
   const date = dateOuNull
 
-  payload.cliente_nome = text(form.cliente_nome)
-  payload.cliente_cpf = text(form.cliente_cpf)
-  payload.empresa_nome = text(form.empresa_nome)
-  payload.empresa_cnpj = text(form.empresa_cnpj)
-  payload.data_admissao = date(form.data_admissao)
-  payload.data_saida = date(form.data_saida)
-  payload.motivo_saida = selectValido(form.motivo_saida, MOTIVOS_SAIDA)
-  payload.verbas_recebidas = selectValido(form.verbas_recebidas, VALORES_SELECT.verbas_recebidas)
-  payload.pago_prazo_10_dias = selectValido(
-    form.pago_prazo_10_dias,
-    VALORES_SELECT.pago_prazo_10_dias,
+  payload.cliente_nome = text(form.cliente_nome, 200)
+  payload.cliente_cpf = text(form.cliente_cpf, 20)
+  payload.empresa_nome = text(form.empresa_nome, 200)
+  payload.empresa_cnpj = text(form.empresa_cnpj, 20)
+  setSePreenchido(payload, 'data_admissao', date(form.data_admissao))
+  setSePreenchido(payload, 'data_saida', date(form.data_saida))
+  setSePreenchido(payload, 'motivo_saida', selectValido(form.motivo_saida, MOTIVOS_SAIDA))
+  setSePreenchido(
+    payload,
+    'verbas_recebidas',
+    selectValido(form.verbas_recebidas, VALORES_SELECT.verbas_recebidas),
+  )
+  setSePreenchido(
+    payload,
+    'pago_prazo_10_dias',
+    selectValido(form.pago_prazo_10_dias, VALORES_SELECT.pago_prazo_10_dias),
   )
   payload.ja_sacou_fgts = !!form.ja_sacou_fgts
   payload.ja_recebeu_seguro_desemprego = !!form.ja_recebeu_seguro_desemprego
   payload.faltas_graves = Array.isArray(form.faltas_graves)
     ? form.faltas_graves.filter((f) => typeof f === 'string' && FALTAS_GRAVES_VALIDAS.includes(f))
     : []
-  payload.data_ultimo_fato_grave = date(form.data_ultimo_fato_grave)
+  setSePreenchido(payload, 'data_ultimo_fato_grave', date(form.data_ultimo_fato_grave))
 
-  payload.ultimo_salario = num(form.ultimo_salario) ?? 0
-  payload.recebia_por_fora = selectValido(form.recebia_por_fora, VALORES_SELECT.recebia_por_fora)
+  payload.ultimo_salario = num(form.ultimo_salario)
+  setSePreenchido(
+    payload,
+    'recebia_por_fora',
+    selectValido(form.recebia_por_fora, VALORES_SELECT.recebia_por_fora),
+  )
   payload.valor_por_fora = num(form.valor_por_fora)
-  payload.recebia_comissoes = selectValido(form.recebia_comissoes, VALORES_SELECT.recebia_comissoes)
+  setSePreenchido(
+    payload,
+    'recebia_comissoes',
+    selectValido(form.recebia_comissoes, VALORES_SELECT.recebia_comissoes),
+  )
   payload.media_comissoes = num(form.media_comissoes)
-  payload.hora_entrada = text(form.hora_entrada)
-  payload.hora_saida = text(form.hora_saida)
+  payload.hora_entrada = text(form.hora_entrada, 10)
+  payload.hora_saida = text(form.hora_saida, 10)
   payload.minutos_intervalo = num(form.minutos_intervalo)
   payload.dias_semana = num(form.dias_semana)
   payload.horas_extras_uteis = num(form.horas_extras_uteis)
   payload.horas_extras_domingo = num(form.horas_extras_domingo)
 
-  payload.situacao_fgts = selectValido(form.situacao_fgts, VALORES_SELECT.situacao_fgts)
+  setSePreenchido(
+    payload,
+    'situacao_fgts',
+    selectValido(form.situacao_fgts, VALORES_SELECT.situacao_fgts),
+  )
   payload.tem_adicional_noturno = !!form.tem_adicional_noturno
   payload.horas_noturnas_semana = num(form.horas_noturnas_semana)
   payload.tem_insalubridade = !!form.tem_insalubridade
