@@ -89,12 +89,22 @@ export function avosNoAno(dataAdmissao: string, dataFinal: string): number {
   return Math.min(12, Math.max(0, avos))
 }
 
-/** Soma N dias a uma data YYYY-MM-DD. */
+/** Soma N dias a uma data YYYY-MM-DD — aritmética puramente em calendário UTC. */
 export function addDias(data: string, dias: number): string {
   if (!data) return data
-  const d = new Date(`${data}T12:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + dias)
+  const [ano, mes, dia] = data.split('-').map(Number)
+  if (!ano || !mes || !dia) return data
+  const d = new Date(Date.UTC(ano, mes - 1, dia + dias))
   return d.toISOString().slice(0, 10)
+}
+
+/** Data de hoje no fuso local, no formato YYYY-MM-DD. */
+export function hojeLocalISO(): string {
+  const agora = new Date()
+  const ano = agora.getFullYear()
+  const mes = String(agora.getMonth() + 1).padStart(2, '0')
+  const dia = String(agora.getDate()).padStart(2, '0')
+  return `${ano}-${mes}-${dia}`
 }
 
 /** Formata data ISO (YYYY-MM-DD) como DD/MM/AAAA. */

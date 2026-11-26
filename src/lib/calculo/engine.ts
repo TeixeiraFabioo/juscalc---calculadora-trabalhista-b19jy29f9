@@ -8,6 +8,7 @@ import {
   diffMeses,
   fmt,
   fmtData,
+  hojeLocalISO,
   num,
   r2,
   type ConfiguracoesCalculo,
@@ -51,9 +52,7 @@ export function calcularTrabalhista(
   const aindaTrabalhando = motivo === 'Ainda trabalhando' || rescIndiretaAindaTrabalhando
   // Rescisão Indireta "Ainda trabalhando": contrato vigente — projeta o término na data atual.
   const dataSaidaBase =
-    form.data_saida ||
-    (rescIndiretaAindaTrabalhando ? new Date().toISOString().slice(0, 10) : '') ||
-    new Date().toISOString().slice(0, 10)
+    form.data_saida || (rescIndiretaAindaTrabalhando ? hojeLocalISO() : '') || hojeLocalISO()
   // Verbas que uma DEMISSÃO SEM JUSTA CAUSA gera (o Rescisão Indireta deve espelhar exatamente):
   const verbasDemissaoSemJustaCausa = [
     'Aviso Prévio Indenizado',
@@ -128,17 +127,34 @@ export function calcularTrabalhista(
   const parcialSemPrazo =
     form.verbas_recebidas === 'recebeu_parcial' && form.pago_prazo_10_dias === 'nao'
   const saldoPago = !(naoRecebeu || parcialSemPrazo)
-  const diasNoMesSaida = Number(dataSaidaBase.slice(8, 10))
+  // Saldo de salário: dias trabalhados no mês da saída. Se admissão e saída ocorrerem
+  // no mesmo mês/ano, conta do dia da admissão até o dia da saída (inclusive); caso
+  // contrário, o dia da saída. Limitado a 30 dias.
+  const [anoSaida, mesSaida, diaSaidaNum] = dataSaidaBase.split('-').map(Number)
+  const [anoAdm, mesAdm, diaAdmNum] = dataAdmissao.split('-').map(Number)
+  let diasNoMesSaida = Math.min(30, diaSaidaNum || 0)
+  const mesmoMesAno =
+    diaAdmNum !== undefined &&
+    mesAdm !== undefined &&
+    anoAdm !== undefined &&
+    anoAdm === anoSaida &&
+    mesAdm === mesSaida &&
+    (anoAdm !== 0 || mesAdm !== 0)
+  if (mesmoMesAno) diasNoMesSaida = Math.min(30, diaSaidaNum - diaAdmNum + 1)
   const saldoSalario = saldoPago ? 0 : r2((baseSalarial / 30) * diasNoMesSaida)
   memoria.push(
     saldoSalario > 0
-      ? `Saldo de salário: ${diasNoMesSaida} dias trabalhados no mês da saída × (${fmt(baseSalarial)} ÷ 30) = ${fmt(saldoSalario)} — verbas não pagas pela empresa.`
+      ? mesmoMesAno
+        ? `Saldo de salário: admissão e saída no mesmo mês (${fmtData(dataAdmissao)} a ${fmtData(dataSaidaBase)}), ${diasNoMesSaida} dias trabalhados (de ${diaAdmNum} a ${diaSaidaNum}) × (${fmt(baseSalarial)} ÷ 30) = ${fmt(saldoSalario)} — verbas não pagas pela empresa.`
+        : `Saldo de salário: ${diasNoMesSaida} dias trabalhados no mês da saída × (${fmt(baseSalarial)} ÷ 30) = ${fmt(saldoSalario)} — verbas não pagas pela empresa.`
       : 'Saldo de salário: R$ 0,00 — verbas pagas pela empresa.',
   )
   push(
     'Saldo de Salário',
     'Art. 462 da CLT',
-    `${fmt(baseSalarial)} ÷ 30 × ${diasNoMesSaida} dias`,
+    mesmoMesAno
+      ? `${fmt(baseSalarial)} ÷ 30 × ${diasNoMesSaida} dias (admissão no mesmo mês da saída)`
+      : `${fmt(baseSalarial)} ÷ 30 × ${diasNoMesSaida} dias`,
     saldoSalario,
   )
 
